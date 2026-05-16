@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Sil · SplitMate{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-body">
+                <h4 class="text-danger"><i class="bi bi-exclamation-triangle"></i> Harcamayı Sil</h4>
+                <p>"<strong>{{ object.title }}</strong>" silinecek. Tüm paylaşım kayıtları da silinir.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Evet, Sil</button>
+                    <a href="{% url 'group_detail' object.group.pk %}" class="btn btn-secondary">İptal</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

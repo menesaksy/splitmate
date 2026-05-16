@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}{{ group.name }} · SplitMate{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h3 class="mb-1"><i class="bi bi-folder-fill text-warning"></i> {{ group.name }}</h3>
+        {% if group.description %}<p class="text-muted">{{ group.description }}</p>{% endif %}
+        <div class="small text-muted">
+            <span class="me-3"><i class="bi bi-people"></i> {{ group.members.count }} üye</span>
+            <span class="me-3"><i class="bi bi-receipt"></i> {{ expenses|length }} harcama</span>
+            <span><i class="bi bi-cash"></i> Toplam: {{ total_amount|floatformat:2 }} {{ group.currency }}</span>
+        </div>
+    </div>
+    <div>
+        <a href="{% url 'expense_create' group.pk %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Harcama Ekle
+        </a>
+        <a href="{% url 'settlement_create' group.pk %}" class="btn btn-outline-success">
+            <i class="bi bi-cash-stack"></i> Ödeme Kaydet
+        </a>
+    </div>
+</div>
+
+<!-- Davet kodu -->
+<div class="alert alert-light border d-flex justify-content-between align-items-center">
+    <div>
+        <i class="bi bi-link-45deg"></i> Davet kodu:
+        <span class="invite-code">{{ group.invite_code }}</span>
+        <small class="text-muted ms-2">Bu kodu paylaşarak başkalarını davet et</small>
+    </div>
+    <div>
+        <a href="{% url 'group_update' group.pk %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-pencil"></i> Düzenle
+        </a>
+        {% if group.created_by == user %}
+        <a href="{% url 'group_delete' group.pk %}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash"></i> Sil
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Sol: Netleştirme + Bakiyeler -->
+    <div class="col-lg-5">
+        <!-- Simplified Debts -->
+        <div class="card simplify-card mb-3">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="bi bi-arrow-left-right"></i> Önerilen Ödemeler</h5>
+                {% if simplified %}
+                <p class="text-muted small mb-2">Aşağıdaki ödemelerle tüm borçlar kapanır:</p>
+                {% for t in simplified %}
+                <div class="transaction-line">
+                    <span class="me-2"><strong>{{ t.from_user.username }}</strong></span>
+                    <i class="bi bi-arrow-right text-muted mx-2"></i>
+                    <span class="me-auto"><strong>{{ t.to_user.username }}</strong></span>
+                    <span class="badge bg-primary">{{ t.amount|floatformat:2 }} {{ group.currency }}</span>
+                    {% if t.from_user == user or t.to_user == user %}
+                    <button class="btn btn-sm btn-success ms-2 quick-settle"
+                            data-from="{{ t.from_user.id }}"
+                            data-to="{{ t.to_user.id }}"
+                            data-amount="{{ t.amount }}"
+                            title="Bu ödemeyi yapıldı olarak işaretle">
+                        <i class="bi bi-check2"></i>
+                    </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted text-center my-3">
+                    <i class="bi bi-check-circle text-success"></i> Tüm borçlar dengede.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Bakiyeler -->
+        <div class="card summary-card">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="bi bi-bar-chart"></i> Bakiyeler</h5>
+                {% for b in balances %}
+                <div class="balance-row {% if b.amount > 0 %}balance-positive{% elif b.amount < 0 %}balance-negative{% else %}balance-zero{% endif %} d-flex justify-content-between">
+                    <span><i class="bi bi-person"></i> {{ b.user.username }}</span>
+                    <span class="{% if b.amount > 0 %}amount-positive{% elif b.amount < 0 %}amount-negative{% endif %}">
+                        {% if b.amount > 0 %}+{% endif %}{{ b.amount|floatformat:2 }} {{ group.currency }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sağ: Harcamalar -->
+    <div class="col-lg-7">
+        <div class="card summary-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="bi bi-receipt"></i> Harcamalar</h5>
+                </div>
+
+                <!-- Filtre -->
+                <form method="get" class="row g-2 mb-3">
+                    <div class="col-md-7">
+                        <input type="text" name="q" value="{{ query }}" class="form-control form-control-sm"
+                               placeholder="Başlık veya açıklamada ara...">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="category" class="form-select form-select-sm">
+                            <option value="">Tüm kategoriler</option>
+                            {% for c in categories %}
+                            <option value="{{ c.id }}" {% if active_category == c.id|stringformat:"s" %}selected{% endif %}>
+                                {{ c.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button class="btn btn-sm btn-outline-secondary">Filtrele</button>
+                    </div>
+                </form>
+
+                <!-- Harcama listesi -->
+                {% if expenses %}
+                <div class="list-group list-group-flush">
+                    {% for e in expenses %}
+                    <a href="{% url 'expense_detail' e.pk %}" class="list-group-item list-group-item-action expense-row">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ e.title }}</strong>
+                                {% if e.category %}
+                                <span class="badge bg-secondary ms-1">{{ e.category.name }}</span>
+                                {% endif %}
+                                <div class="small text-muted">
+                                    <i class="bi bi-person"></i> {{ e.paid_by.username }} ödedi ·
+                                    {{ e.date|date:"d M Y" }}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold">{{ e.amount|floatformat:2 }} {{ group.currency }}</div>
+                                <small class="text-muted">{{ e.get_split_type_display }}</small>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-receipt" style="font-size: 2.5rem;"></i>
+                    <p class="mt-3">Henüz harcama yok.</p>
+                    <a href="{% url 'expense_create' group.pk %}" class="btn btn-primary btn-sm">İlk harcamayı ekle</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// AJAX hızlı ödeme
+document.querySelectorAll('.quick-settle').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!confirm('Bu ödemeyi yapıldı olarak işaretlemek istiyor musun?')) return;
+
+        const fd = new FormData();
+        fd.append('from_user_id', this.dataset.from);
+        fd.append('to_user_id', this.dataset.to);
+        fd.append('amount', this.dataset.amount);
+
+        fetch("{% url 'ajax_quick_settle' group.pk %}", {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken')},
+            body: fd
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Hata: ' + (data.error || 'bilinmiyor'));
+            }
+        });
+    });
+});
+
+function getCookie(name) {
+    let value = null;
+    document.cookie.split(';').forEach(function (c) {
+        c = c.trim();
+        if (c.startsWith(name + '=')) {
+            value = decodeURIComponent(c.substring(name.length + 1));
+        }
+    });
+    return value;
+}
+</script>
+{% endblock %}

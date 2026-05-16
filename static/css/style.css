@@ -1,0 +1,90 @@
+:root {
+    --bg-soft: #f8f9fb;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --owed-color: #16a34a;
+    --owe-color: #dc2626;
+}
+
+body {
+    background-color: var(--bg-soft);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.summary-card {
+    border: none;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.15s ease;
+}
+.summary-card:hover {
+    transform: translateY(-2px);
+}
+
+.amount-positive { color: var(--owed-color); font-weight: 600; }
+.amount-negative { color: var(--owe-color); font-weight: 600; }
+
+.group-card {
+    border: none;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.15s ease;
+    height: 100%;
+}
+.group-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+
+.expense-row {
+    transition: background-color 0.12s ease;
+    border-radius: 0.375rem;
+}
+.expense-row:hover {
+    background-color: rgba(0,0,0,0.03);
+}
+
+.balance-row {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.balance-positive { background-color: rgba(22, 163, 74, 0.08); }
+.balance-negative { background-color: rgba(220, 38, 38, 0.08); }
+.balance-zero     { background-color: rgba(108, 117, 125, 0.08); }
+
+.invite-code {
+    font-family: 'Courier New', monospace;
+    background: rgba(0,0,0,0.05);
+    padding: 0.25rem 0.6rem;
+    border-radius: 0.4rem;
+    letter-spacing: 2px;
+    font-weight: 600;
+}
+
+.empty-state {
+    padding: 4rem 1rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+footer {
+    color: #8a94a6;
+    font-size: 0.85rem;
+}
+
+.simplify-card {
+    background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(168,85,247,0.06));
+    border: 1px solid rgba(99,102,241,0.15);
+}
+
+.transaction-line {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed rgba(0,0,0,0.1);
+}
+.transaction-line:last-child {
+    border-bottom: none;
+}

@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Harcama · SplitMate{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card summary-card">
+            <div class="card-body p-4">
+                <h4 class="mb-3">
+                    <i class="bi bi-plus-circle"></i>
+                    {% if form.instance.pk %}Harcamayı Düzenle{% else %}Yeni Harcama{% endif %}
+                    <small class="text-muted">— {{ group.name }}</small>
+                </h4>
+
+                <form method="post" novalidate id="expense-form">
+                    {% csrf_token %}
+
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                        <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <!-- Eşit Olmayan Paylaşım Alanı -->
+                    <div id="custom-shares" class="d-none">
+                        <hr>
+                        <h6 class="mb-2"><i class="bi bi-pie-chart"></i> Kişi Başı Pay</h6>
+                        <p class="text-muted small" id="custom-helper"></p>
+                        <div id="shares-inputs">
+                            {% for m in members %}
+                            <div class="row g-2 mb-2 align-items-center">
+                                <div class="col-6">
+                                    <label class="form-label mb-0">{{ m.username }}</label>
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" step="0.01" min="0"
+                                           class="form-control share-input"
+                                           data-user-id="{{ m.id }}"
+                                           placeholder="0.00">
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="small text-muted" id="shares-summary"></div>
+                    </div>
+                    <input type="hidden" name="custom_shares_json" id="custom-shares-json" value="{}">
+
+                    <hr>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                    <a href="{% url 'group_detail' group.pk %}" class="btn btn-link">İptal</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const splitSelect = document.getElementById('id_split_type');
+const amountInput = document.getElementById('id_amount');
+const customDiv   = document.getElementById('custom-shares');
+const helper      = document.getElementById('custom-helper');
+const hiddenJson  = document.getElementById('custom-shares-json');
+const summary     = document.getElementById('shares-summary');
+const inputs      = document.querySelectorAll('.share-input');
+
+function updateView() {
+    const val = splitSelect.value;
+    if (val === 'equal') {
+        customDiv.classList.add('d-none');
+    } else {
+        customDiv.classList.remove('d-none');
+        if (val === 'exact') {
+            helper.textContent = "Her kişinin ödediği TUTAR'ı gir. Toplam, harcama tutarına eşit olmalı.";
+        } else if (val === 'percent') {
+            helper.textContent = "Her kişinin YÜZDE'sini gir. Toplam 100 olmalı.";
+        }
+        recalcSummary();
+    }
+}
+
+function recalcSummary() {
+    let total = 0;
+    const data = {};
+    inputs.forEach(inp => {
+        const v = parseFloat(inp.value) || 0;
+        if (v > 0) data[inp.dataset.userId] = v;
+        total += v;
+    });
+    hiddenJson.value = JSON.stringify(data);
+
+    if (splitSelect.value === 'exact') {
+        const target = parseFloat(amountInput.value) || 0;
+        summary.textContent = `Toplam pay: ${total.toFixed(2)} / Hedef: ${target.toFixed(2)}`;
+        summary.className = (Math.abs(total - target) < 0.01) ? 'small text-success' : 'small text-danger';
+    } else if (splitSelect.value === 'percent') {
+        summary.textContent = `Toplam yüzde: ${total.toFixed(2)} / 100`;
+        summary.className = (Math.abs(total - 100) < 0.01) ? 'small text-success' : 'small text-danger';
+    }
+}
+
+splitSelect.addEventListener('change', updateView);
+inputs.forEach(inp => inp.addEventListener('input', recalcSummary));
+amountInput.addEventListener('input', recalcSummary);
+updateView();
+</script>
+{% endblock %}
