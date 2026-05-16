@@ -33,6 +33,9 @@
         <a href="{% url 'group_update' group.pk %}" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-pencil"></i> Düzenle
         </a>
+        <a href="{% url 'export_pdf' group.pk %}" class="btn btn-sm btn-outline-dark">
+            <i class="bi bi-file-earmark-pdf"></i> PDF İndir
+        </a>
         {% if group.created_by == user %}
         <a href="{% url 'group_delete' group.pk %}" class="btn btn-sm btn-outline-danger">
             <i class="bi bi-trash"></i> Sil

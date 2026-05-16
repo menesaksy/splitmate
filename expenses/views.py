@@ -4,6 +4,7 @@ from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
+from django.http import HttpResponse
 from django.db.models import Sum, Count, Q
 from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponseForbidden
@@ -13,6 +14,8 @@ from django.views.generic import (
 )
 from decimal import Decimal
 import json
+
+from expenses.services import get_exchange_rate
 
 from .models import Group, Membership, Expense, ExpenseShare, Settlement, Category
 from .forms import GroupForm, ExpenseForm, SettlementForm, JoinGroupForm
@@ -34,8 +37,6 @@ def signup(request):
     return render(request, 'registration/signup.html', {'form': form})
 
 
-# ---------- Dashboard ----------
-
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'expenses/dashboard.html'
 
@@ -43,10 +44,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
 
-        # Kullanıcının dahil olduğu gruplar
         groups = Group.objects.filter(members=user, is_active=True).distinct()
 
-        # Toplam alacak/borç (tüm grupları gez)
         total_owed_to_me = Decimal('0.00')
         total_i_owe = Decimal('0.00')
 
@@ -58,7 +57,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             elif my_balance < 0:
                 total_i_owe += -my_balance
 
-        # Son harcamalar
+        # Döviz kuru (USD/EUR grupları için)
+        exchange_rates = {}
+        currencies = set(g.currency for g in groups if g.currency != 'TRY')
+        for curr in currencies:
+            rate = get_exchange_rate(curr, 'TRY')
+            if rate:
+                exchange_rates[curr] = rate
+
         recent_expenses = Expense.objects.filter(
             group__in=groups
         ).select_related('group', 'paid_by', 'category')[:10]
@@ -69,6 +75,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'total_i_owe': total_i_owe,
             'net_balance': total_owed_to_me - total_i_owe,
             'recent_expenses': recent_expenses,
+            'exchange_rates': exchange_rates,
         })
         return ctx
 
@@ -351,3 +358,102 @@ def ajax_quick_settle(request, group_pk):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+    
+@login_required
+def export_group_pdf(request, pk):
+    """Grup harcamalarını PDF olarak dışa aktar."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import io
+
+    group = get_object_or_404(Group, pk=pk)
+    if not group.members.filter(id=request.user.id).exists():
+        return HttpResponseForbidden()
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Başlık
+    elements.append(Paragraph(f"SplitMate - {group.name}", styles['Title']))
+    elements.append(Paragraph(f"Para Birimi: {group.currency}", styles['Normal']))
+    elements.append(Spacer(1, 12))
+
+    # Üyeler
+    elements.append(Paragraph("Üyeler", styles['Heading2']))
+    members_data = [['Kullanıcı Adı', 'Rol']]
+    for m in group.membership_set.select_related('user').all():
+        members_data.append([m.user.username, m.get_role_display()])
+
+    members_table = Table(members_data, colWidths=[200, 100])
+    members_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#343a40')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6')),
+        ('PADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(members_table)
+    elements.append(Spacer(1, 16))
+
+    # Harcamalar
+    elements.append(Paragraph("Harcamalar", styles['Heading2']))
+    expense_data = [['Başlık', 'Tutar', 'Ödeyen', 'Tarih', 'Paylaşım']]
+    total = Decimal('0.00')
+    for e in group.expenses.select_related('paid_by').order_by('-date'):
+        expense_data.append([
+            e.title,
+            f"{e.amount} {group.currency}",
+            e.paid_by.username,
+            e.date.strftime('%d.%m.%Y'),
+            e.get_split_type_display(),
+        ])
+        total += e.amount
+
+    expense_data.append(['TOPLAM', f"{total} {group.currency}", '', '', ''])
+
+    exp_table = Table(expense_data, colWidths=[130, 80, 80, 80, 80])
+    exp_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d6efd')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e9ecef')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f8f9fa')]),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6')),
+        ('PADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(exp_table)
+    elements.append(Spacer(1, 16))
+
+    # Bakiyeler
+    elements.append(Paragraph("Bakiyeler", styles['Heading2']))
+    balances = calculate_balances(group)
+    user_map = {u.id: u.username for u in group.members.all()}
+    bal_data = [['Kullanıcı', 'Net Bakiye']]
+    for uid, amt in balances.items():
+        bal_data.append([user_map.get(uid, str(uid)), f"{amt:+.2f} {group.currency}"])
+
+    bal_table = Table(bal_data, colWidths=[200, 150])
+    bal_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#198754')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6')),
+        ('PADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(bal_table)
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="splitmate_{group.name}_{group.currency}.pdf"'
+    return response

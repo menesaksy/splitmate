@@ -19,4 +19,5 @@ urlpatterns = [
     path('groups/<int:group_pk>/quick-settle/', views.ajax_quick_settle, name='ajax_quick_settle'),
 
     path('signup/', views.signup, name='signup'),
+    path('groups/<int:pk>/export-pdf/', views.export_group_pdf, name='export_pdf'),
 ]

@@ -116,4 +116,22 @@ def build_expense_shares(expense, split_type, members, custom_shares=None):
                 expense=expense,
                 user_id=user_id,
                 amount=amount
-            )
+            ) 
+
+def get_exchange_rate(from_currency, to_currency='TRY'):
+    """
+    Frankfurter.app üzerinden anlık döviz kurunu çeker.
+    Hata durumunda None döner — uygulama çökmez.
+    """
+    import requests
+    if from_currency == to_currency:
+        return Decimal('1.00')
+    try:
+        url = f'https://api.frankfurter.app/latest?from={from_currency}&to={to_currency}'
+        resp = requests.get(url, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+        rate = data['rates'].get(to_currency)
+        return Decimal(str(rate)) if rate else None
+    except Exception:
+        return None
