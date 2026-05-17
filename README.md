@@ -7,7 +7,7 @@ Django ile geliştirilmiştir.
 
 > Yeditepe Üniversitesi — Django Dönem Projesi
 
-**Canlı Uygulama:** `<RENDER_URL>`
+**Canlı Uygulama:** [`<RENDER_URL>`](https://splitmate-p3ku.onrender.com)
 **Kaynak Kod:** `https://github.com/menesaksy/splitmate`
 
 ---
