@@ -56,6 +56,26 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 total_owed_to_me += my_balance
             elif my_balance < 0:
                 total_i_owe += -my_balance
+        # Para birimine göre grupla
+        from collections import defaultdict
+        balances_by_currency = {}
+        for g in groups:
+            curr = g.currency
+            bal = calculate_balances(g)
+            my_bal = bal.get(user.id, Decimal('0.00'))
+            if curr not in balances_by_currency:
+                balances_by_currency[curr] = {
+                    'owed': Decimal('0.00'),
+                    'owe': Decimal('0.00'),
+                    'net': Decimal('0.00'),
+                }
+            if my_bal > 0:
+                balances_by_currency[curr]['owed'] += my_bal
+            elif my_bal < 0:
+                balances_by_currency[curr]['owe'] += -my_bal
+            balances_by_currency[curr]['net'] = (
+                balances_by_currency[curr]['owed'] - balances_by_currency[curr]['owe']
+            )
 
         # Doviz kuru (USD/EUR gruplari icin)
         exchange_rates = {}
@@ -76,6 +96,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'net_balance': total_owed_to_me - total_i_owe,
             'recent_expenses': recent_expenses,
             'exchange_rates': exchange_rates,
+            'balances_by_currency': balances_by_currency,
         })
         return ctx
 
