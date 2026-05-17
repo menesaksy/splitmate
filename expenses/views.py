@@ -4,22 +4,20 @@ from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.db.models import Sum, Count, Q
 from django.urls import reverse_lazy
-from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 )
+from django.core.paginator import Paginator
 from decimal import Decimal
 import json
 
-from expenses.services import get_exchange_rate
-
 from .models import Group, Membership, Expense, ExpenseShare, Settlement, Category
 from .forms import GroupForm, ExpenseForm, SettlementForm, JoinGroupForm
-from .services import calculate_balances, simplify_debts, build_expense_shares
+from .services import calculate_balances, simplify_debts, build_expense_shares, get_exchange_rate
 
 
 # ---------- Auth ----------
@@ -30,12 +28,14 @@ def signup(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            messages.success(request, 'Hoş geldin! Hadi bir grup oluştur veya katıl.')
+            messages.success(request, 'Hos geldin! Hadi bir grup olustur veya katil.')
             return redirect('group_list')
     else:
         form = UserCreationForm()
     return render(request, 'registration/signup.html', {'form': form})
 
+
+# ---------- Dashboard ----------
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'expenses/dashboard.html'
@@ -57,7 +57,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             elif my_balance < 0:
                 total_i_owe += -my_balance
 
-        # Döviz kuru (USD/EUR grupları için)
+        # Doviz kuru (USD/EUR gruplari icin)
         exchange_rates = {}
         currencies = set(g.currency for g in groups if g.currency != 'TRY')
         for curr in currencies:
@@ -99,38 +99,37 @@ class GroupDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Group
     template_name = 'expenses/group_detail.html'
     context_object_name = 'group'
-    paginate_by = 10
 
     def test_func(self):
         group = self.get_object()
         return group.members.filter(id=self.request.user.id).exists()
 
     def handle_no_permission(self):
-        messages.error(self.request, 'Bu grubun üyesi değilsin.')
+        messages.error(self.request, 'Bu grubun uyesi degilsin.')
         return redirect('group_list')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         group = self.object
 
-        # Harcama listesi + filtreler
-        expenses = group.expenses.select_related('paid_by', 'category').prefetch_related('shares')
+        qs = group.expenses.select_related('paid_by', 'category').prefetch_related('shares')
 
         category_id = self.request.GET.get('category')
         if category_id:
-            expenses = expenses.filter(category_id=category_id)
+            qs = qs.filter(category_id=category_id)
 
         query = self.request.GET.get('q', '').strip()
         if query:
-            expenses = expenses.filter(
+            qs = qs.filter(
                 Q(title__icontains=query) | Q(description__icontains=query)
             )
 
-        # Bakiyeler ve netleştirme
+        paginator = Paginator(qs, 10)
+        page_number = self.request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+
         balances = calculate_balances(group)
         simplified = simplify_debts(group)
-
-        # User ID → User dönüşümü kolaylaştırmak için
         user_map = {u.id: u for u in group.members.all()}
 
         balances_display = [
@@ -140,17 +139,15 @@ class GroupDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         balances_display.sort(key=lambda x: x['amount'], reverse=True)
 
         simplified_display = [
-            {
-                'from_user': user_map[fid],
-                'to_user': user_map[tid],
-                'amount': amt
-            }
+            {'from_user': user_map[fid], 'to_user': user_map[tid], 'amount': amt}
             for fid, tid, amt in simplified
             if fid in user_map and tid in user_map
         ]
 
         ctx.update({
-            'expenses': expenses,
+            'expenses': page_obj,
+            'page_obj': page_obj,
+            'is_paginated': paginator.num_pages > 1,
             'balances': balances_display,
             'simplified': simplified_display,
             'categories': Category.objects.all(),
@@ -169,13 +166,12 @@ class GroupCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         response = super().form_valid(form)
-        # Oluşturucuyu admin üye yap
         Membership.objects.create(
             user=self.request.user,
             group=self.object,
             role='admin'
         )
-        messages.success(self.request, f'"{self.object.name}" grubu oluşturuldu.')
+        messages.success(self.request, f'"{self.object.name}" grubu olusturuldu.')
         return response
 
 
@@ -202,7 +198,7 @@ class GroupDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
 @login_required
 def join_group(request):
-    """Davet kodu ile gruba katılma."""
+    """Davet kodu ile gruba katilma."""
     if request.method == 'POST':
         form = JoinGroupForm(request.POST)
         if form.is_valid():
@@ -210,14 +206,14 @@ def join_group(request):
             try:
                 group = Group.objects.get(invite_code=code)
             except Group.DoesNotExist:
-                messages.error(request, 'Geçersiz davet kodu.')
+                messages.error(request, 'Gecersiz davet kodu.')
                 return redirect('join_group')
 
             if Membership.objects.filter(user=request.user, group=group).exists():
-                messages.info(request, 'Zaten bu grubun üyesisin.')
+                messages.info(request, 'Zaten bu grubun uyesisin.')
             else:
                 Membership.objects.create(user=request.user, group=group)
-                messages.success(request, f'"{group.name}" grubuna katıldın.')
+                messages.success(request, f'"{group.name}" grubuna katildin.')
             return redirect('group_detail', pk=group.pk)
     else:
         form = JoinGroupForm()
@@ -253,7 +249,6 @@ class ExpenseCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         form.instance.group = self.group
         response = super().form_valid(form)
 
-        # Paylaşımları oluştur
         members = list(self.group.members.all())
         split_type = form.cleaned_data['split_type']
 
@@ -297,7 +292,7 @@ class ExpenseDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return reverse_lazy('group_detail', kwargs={'pk': self.object.group.pk})
 
 
-# ---------- Settlement (ödeme) ----------
+# ---------- Settlement ----------
 
 class SettlementCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Settlement
@@ -323,19 +318,19 @@ class SettlementCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.group = self.group
-        messages.success(self.request, 'Ödeme kaydedildi.')
+        messages.success(self.request, 'Odeme kaydedildi.')
         return super().form_valid(form)
 
     def get_success_url(self):
         return reverse_lazy('group_detail', kwargs={'pk': self.group.pk})
 
 
-# ---------- AJAX endpoints ----------
+# ---------- AJAX ----------
 
 @login_required
 @require_POST
 def ajax_quick_settle(request, group_pk):
-    """Bir borç ilişkisini tek tıkla 'ödendi' olarak işaretle (AJAX)."""
+    """Bir borc iliskisini tek tikla odendi olarak isaretleyin (AJAX)."""
     group = get_object_or_404(Group, pk=group_pk)
     if not group.members.filter(id=request.user.id).exists():
         return JsonResponse({'error': 'Yetkisiz'}, status=403)
@@ -353,21 +348,22 @@ def ajax_quick_settle(request, group_pk):
             to_user_id=to_user_id,
             amount=Decimal(str(amount)),
             date=timezone.now().date(),
-            note='Hızlı ödeme'
+            note='Hizli odeme'
         )
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
-    
+
+
+# ---------- PDF Export ----------
+
 @login_required
 def export_group_pdf(request, pk):
-    """Grup harcamalarını PDF olarak dışa aktar."""
+    """Grup harcamalarini PDF olarak disa aktar."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
     import io
 
     group = get_object_or_404(Group, pk=pk)
@@ -379,14 +375,12 @@ def export_group_pdf(request, pk):
     styles = getSampleStyleSheet()
     elements = []
 
-    # Başlık
     elements.append(Paragraph(f"SplitMate - {group.name}", styles['Title']))
     elements.append(Paragraph(f"Para Birimi: {group.currency}", styles['Normal']))
     elements.append(Spacer(1, 12))
 
-    # Üyeler
-    elements.append(Paragraph("Üyeler", styles['Heading2']))
-    members_data = [['Kullanıcı Adı', 'Rol']]
+    elements.append(Paragraph("Uyeler", styles['Heading2']))
+    members_data = [['Kullanici Adi', 'Rol']]
     for m in group.membership_set.select_related('user').all():
         members_data.append([m.user.username, m.get_role_display()])
 
@@ -402,9 +396,8 @@ def export_group_pdf(request, pk):
     elements.append(members_table)
     elements.append(Spacer(1, 16))
 
-    # Harcamalar
     elements.append(Paragraph("Harcamalar", styles['Heading2']))
-    expense_data = [['Başlık', 'Tutar', 'Ödeyen', 'Tarih', 'Paylaşım']]
+    expense_data = [['Baslik', 'Tutar', 'Ödeyen', 'Tarih', 'Paylasim']]
     total = Decimal('0.00')
     for e in group.expenses.select_related('paid_by').order_by('-date'):
         expense_data.append([
@@ -432,11 +425,10 @@ def export_group_pdf(request, pk):
     elements.append(exp_table)
     elements.append(Spacer(1, 16))
 
-    # Bakiyeler
     elements.append(Paragraph("Bakiyeler", styles['Heading2']))
     balances = calculate_balances(group)
     user_map = {u.id: u.username for u in group.members.all()}
-    bal_data = [['Kullanıcı', 'Net Bakiye']]
+    bal_data = [['Kullanici', 'Net Bakiye']]
     for uid, amt in balances.items():
         bal_data.append([user_map.get(uid, str(uid)), f"{amt:+.2f} {group.currency}"])
 
@@ -455,5 +447,5 @@ def export_group_pdf(request, pk):
     buffer.seek(0)
 
     response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="splitmate_{group.name}_{group.currency}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="splitmate_{group.name}.pdf"'
     return response

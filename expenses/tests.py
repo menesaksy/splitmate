@@ -236,3 +236,66 @@ class BuildSharesTests(TestCase):
         shares = {s.user_id: s.amount for s in expense.shares.all()}
         self.assertEqual(shares[self.alice.id], Decimal('30.00'))
         self.assertEqual(shares[self.bob.id], Decimal('70.00'))
+
+class APITests(TestCase):
+    """REST API endpoint testleri."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='apiuser', password='pass1234')
+        self.other = User.objects.create_user(username='other', password='pass1234')
+        self.group = Group.objects.create(name='API Test', created_by=self.user)
+        Membership.objects.create(user=self.user, group=self.group, role='admin')
+        Membership.objects.create(user=self.other, group=self.group)
+
+    def test_api_requires_auth(self):
+        """Giriş yapmadan API erişilememeli."""
+        response = self.client.get('/api/groups/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_api_returns_own_groups(self):
+        """Kullanıcı sadece kendi gruplarını görür."""
+        # Başka bir kullanıcının grubu
+        other_group = Group.objects.create(name='Yabancı', created_by=self.other)
+        Membership.objects.create(user=self.other, group=other_group, role='admin')
+
+        self.client.login(username='apiuser', password='pass1234')
+        response = self.client.get('/api/groups/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        results = data.get('results', data)
+        names = [g['name'] for g in results]
+        self.assertIn('API Test', names)
+        self.assertNotIn('Yabancı', names)
+
+    def test_api_group_balances_endpoint(self):
+        """Bakiye endpoint'i çalışıyor mu?"""
+        self.client.login(username='apiuser', password='pass1234')
+        response = self.client.get(f'/api/groups/{self.group.pk}/balances/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('balances', data)
+        self.assertIn('suggested_payments', data)
+
+    def test_api_expenses_returns_only_member_expenses(self):
+        """API sadece üyenin grubundaki harcamaları döndürür."""
+        Expense.objects.create(
+            group=self.group, title='Ortak Harcama',
+            amount=Decimal('100'), paid_by=self.user, date=date.today()
+        )
+        # Başka gruba harcama
+        other_group = Group.objects.create(name='Gizli', created_by=self.other)
+        Membership.objects.create(user=self.other, group=other_group, role='admin')
+        Expense.objects.create(
+            group=other_group, title='Gizli Harcama',
+            amount=Decimal('50'), paid_by=self.other, date=date.today()
+        )
+
+        self.client.login(username='apiuser', password='pass1234')
+        response = self.client.get('/api/expenses/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        results = data.get('results', data)
+        titles = [e['title'] for e in results]
+        self.assertIn('Ortak Harcama', titles)
+        self.assertNotIn('Gizli Harcama', titles)
