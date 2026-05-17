@@ -1,6 +1,21 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="tr" data-theme="dark">
+    <style>
+    .auth-layout {
+        animation: fadeSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes fadeSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    </style>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +25,28 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
 </head>
+<script>
+document.querySelectorAll('a[href*="login"], a[href*="signup"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const href = this.href;
+        const layout = document.querySelector('.auth-layout');
+        if (layout) {
+            layout.style.animation = 'fadeSlideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards';
+            setTimeout(() => window.location.href = href, 280);
+        } else {
+            window.location.href = href;
+        }
+    });
+});
+</script>
+
+<style>
+@keyframes fadeSlideOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-10px); }
+}
+</style>
 <body>
 
 {% if user.is_authenticated %}
@@ -131,20 +168,12 @@
 
 <!-- Auth Layout -->
 <div class="auth-layout">
-    <div class="auth-brand">
-        <div class="logo-mark large">
-            <i class="ti ti-coins"></i>
-        </div>
-        <span class="logo-text large">SplitMate</span>
-    </div>
     {% if messages %}
-    <div class="messages-container" style="max-width:420px;margin:0 auto 1rem;">
+    <div style="position:fixed;top:16px;right:16px;z-index:999;max-width:320px;">
         {% for message in messages %}
-        <div class="alert-toast alert-{{ message.tags|default:'info' }}">
+        <div class="alert-toast alert-{{ message.tags|default:'info' }}" style="margin-bottom:8px;">
             {{ message }}
-            <button class="toast-close" onclick="this.parentElement.remove()">
-                <i class="ti ti-x"></i>
-            </button>
+            <button class="toast-close" onclick="this.parentElement.remove()"><i class="ti ti-x"></i></button>
         </div>
         {% endfor %}
     </div>

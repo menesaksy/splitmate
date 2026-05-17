@@ -2,29 +2,100 @@
 {% block title %}Giriş · SplitMate{% endblock %}
 
 {% block auth_content %}
-<div class="form-card">
-    <h4><i class="ti ti-login"></i> Giriş Yap</h4>
-    {% if form.errors %}
-    <div class="alert-toast alert-error mb-3">
-        <i class="ti ti-alert-circle"></i> Kullanıcı adı veya şifre hatalı.
+<div style="display:flex; min-height:100vh; width:100%; background:#080b12;">
+
+    <!-- Sol panel -->
+    <div style="width:46%; padding:40px 36px; display:flex; flex-direction:column; position:relative; overflow:hidden; background:#080b12;">
+        <div style="position:absolute; width:200px; height:200px; border-radius:50%; background:rgba(99,102,241,0.07); top:-60px; right:-40px;"></div>
+        <div style="position:absolute; width:110px; height:110px; border-radius:50%; background:rgba(139,92,246,0.05); bottom:30px; left:-30px;"></div>
+
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:auto; position:relative;">
+            <div style="width:40px; height:40px; background:#6366f1; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                <i class="ti ti-coins" style="font-size:22px; color:#fff;" aria-hidden="true"></i>
+            </div>
+            <span style="font-size:52px; font-weight:500; color:#e2e8f0; letter-spacing:-0.5px;">SplitMate</span>
+        </div>
+
+        <div style="position:relative; margin-bottom:32px;">
+            <div style="font-size:22px; font-weight:500; color:#e2e8f0; line-height:1.4; margin-bottom:10px;">
+                Harcamaları<br>birlikte yönet
+            </div>
+            <div style="font-size:12px; color:#64748b; line-height:1.7; margin-bottom:20px;">
+                Arkadaşlarınla paylaşımlı harcamaları takip et. Borçlar otomatik netleşir.
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:11px;">
+                <div style="width:26px; height:26px; border-radius:7px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); display:flex; align-items:center; justify-content:center;">
+                    <i class="ti ti-arrows-exchange" style="font-size:13px; color:#818cf8;" aria-hidden="true"></i>
+                </div>
+                <span style="font-size:12px; color:#94a3b8;">Minimum transferle borç netleştirme</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:11px;">
+                <div style="width:26px; height:26px; border-radius:7px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); display:flex; align-items:center; justify-content:center;">
+                    <i class="ti ti-users-group" style="font-size:13px; color:#818cf8;" aria-hidden="true"></i>
+                </div>
+                <span style="font-size:12px; color:#94a3b8;">Davet koduyla gruba katıl</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:11px;">
+                <div style="width:26px; height:26px; border-radius:7px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); display:flex; align-items:center; justify-content:center;">
+                    <i class="ti ti-currency-lira" style="font-size:13px; color:#818cf8;" aria-hidden="true"></i>
+                </div>
+                <span style="font-size:12px; color:#94a3b8;">TRY, EUR, USD — anlık kur desteği</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:11px;">
+                <div style="width:26px; height:26px; border-radius:7px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); display:flex; align-items:center; justify-content:center;">
+                    <i class="ti ti-file-type-pdf" style="font-size:13px; color:#818cf8;" aria-hidden="true"></i>
+                </div>
+                <span style="font-size:12px; color:#94a3b8;">PDF özet raporu indir</span>
+            </div>
+        </div>
+
+        <div style="font-size:11px; color:#334155; position:relative;">© 2026 SplitMate · Yeditepe Üniversitesi</div>
     </div>
-    {% endif %}
-    <form method="post">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label style="display:block; font-size:12px; font-weight:500; color:var(--text-secondary); margin-bottom:5px;">Kullanıcı Adı</label>
-            <input type="text" name="username" class="form-control" required autofocus>
+
+    <!-- Sağ panel — düz tek ton, balon yok -->
+    <div style="flex:1; background:#0f1117; display:flex; align-items:center; justify-content:center; padding:40px 32px;">
+        <div style="width:100%; max-width:340px; background:rgba(20,24,36,0.8); border:1px solid rgba(99,102,241,0.2); border-radius:14px; padding:28px 24px;">
+            <div style="font-size:18px; font-weight:500; color:#e2e8f0; margin-bottom:4px;">Tekrar hoş geldin</div>
+            <div style="font-size:12px; color:#64748b; margin-bottom:22px;">Hesabına giriş yap ve grubuna dön</div>
+
+            {% if form.errors %}
+            <div style="background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); border-radius:8px; padding:10px 12px; font-size:12px; color:#f87171; margin-bottom:16px;">
+                <i class="ti ti-alert-circle" aria-hidden="true"></i> Kullanıcı adı veya şifre hatalı.
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <div style="margin-bottom:14px;">
+                    <label style="display:block; font-size:11px; font-weight:500; color:#94a3b8; margin-bottom:5px;">Kullanıcı Adı</label>
+                    <input type="text" name="username" autofocus required
+                           style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid rgba(99,102,241,0.15); background:rgba(99,102,241,0.05); color:#e2e8f0; font-size:13px;"
+                           placeholder="kullaniciadi">
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label style="display:block; font-size:11px; font-weight:500; color:#94a3b8; margin-bottom:5px;">Şifre</label>
+                    <input type="password" name="password" required
+                           style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid rgba(99,102,241,0.15); background:rgba(99,102,241,0.05); color:#e2e8f0; font-size:13px;"
+                           placeholder="••••••••">
+                </div>
+                <button type="submit"
+                        style="width:100%; padding:10px; background:#6366f1; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-top:6px;">
+                    <i class="ti ti-login" aria-hidden="true"></i> Giriş Yap
+                </button>
+            </form>
+
+            <div style="display:flex; align-items:center; gap:8px; margin:16px 0;">
+                <div style="flex:1; height:0.5px; background:rgba(99,102,241,0.15);"></div>
+                <span style="font-size:11px; color:#334155;">veya</span>
+                <div style="flex:1; height:0.5px; background:rgba(99,102,241,0.15);"></div>
+            </div>
+
+            <div style="text-align:center; font-size:12px; color:#64748b;">
+                Hesabın yok mu?
+                <a href="{% url 'signup' %}" style="color:#818cf8; text-decoration:none; font-weight:500;">Kayıt ol</a>
+            </div>
         </div>
-        <div class="mb-3">
-            <label style="display:block; font-size:12px; font-weight:500; color:var(--text-secondary); margin-bottom:5px;">Şifre</label>
-            <input type="password" name="password" class="form-control" required>
-        </div>
-        <button type="submit" class="btn-sm-primary w-100 justify-content-center mt-2">
-            <i class="ti ti-login"></i> Giriş Yap
-        </button>
-    </form>
-    <p style="text-align:center; margin-top:16px; font-size:13px; color:var(--text-muted);">
-        Hesabın yok mu? <a href="{% url 'signup' %}" style="color:var(--accent);">Kayıt ol</a>
-    </p>
+    </div>
+
 </div>
 {% endblock %}

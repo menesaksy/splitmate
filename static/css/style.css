@@ -290,17 +290,14 @@ a:hover { color: var(--accent); }
 /* ── Auth Layout ── */
 .auth-layout {
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-    background: var(--bg-base);
+    width: 100%;
+    display: block;
+    padding: 0;
+    margin: 0;
+    background: #080b12;
+    overflow: hidden;
 }
-.auth-brand {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 2rem;
-}
+.auth-brand { display: none; }
 
 /* ── Toast Messages ── */
 .messages-container { margin-bottom: 1rem; }
