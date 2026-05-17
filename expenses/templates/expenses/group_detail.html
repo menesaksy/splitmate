@@ -1,184 +1,203 @@
 {% extends 'base.html' %}
 {% block title %}{{ group.name }} · SplitMate{% endblock %}
+{% block page_title %}{{ group.name }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'expense_create' group.pk %}" class="topbar-btn">
+    <i class="ti ti-plus"></i> Harcama Ekle
+</a>
+<a href="{% url 'settlement_create' group.pk %}" class="topbar-btn outline">
+    <i class="ti ti-cash-banknote"></i> Ödeme Kaydet
+</a>
+<a href="{% url 'export_pdf' group.pk %}" class="topbar-btn outline">
+    <i class="ti ti-file-type-pdf"></i> PDF
+</a>
+{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-start mb-3">
-    <div>
-        <h3 class="mb-1"><i class="bi bi-folder-fill text-warning"></i> {{ group.name }}</h3>
-        {% if group.description %}<p class="text-muted">{{ group.description }}</p>{% endif %}
-        <div class="small text-muted">
-            <span class="me-3"><i class="bi bi-people"></i> {{ group.members.count }} üye</span>
-            <span class="me-3"><i class="bi bi-receipt"></i> {{ expenses|length }} harcama</span>
-            <span><i class="bi bi-cash"></i> Toplam: {{ total_amount|floatformat:2 }} {{ group.currency }}</span>
-        </div>
-    </div>
-    <div>
-        <a href="{% url 'expense_create' group.pk %}" class="btn btn-primary">
-            <i class="bi bi-plus-lg"></i> Harcama Ekle
-        </a>
-        <a href="{% url 'settlement_create' group.pk %}" class="btn btn-outline-success">
-            <i class="bi bi-cash-stack"></i> Ödeme Kaydet
-        </a>
-    </div>
-</div>
 
-<!-- Davet kodu -->
-<div class="alert alert-light border d-flex justify-content-between align-items-center">
-    <div>
-        <i class="bi bi-link-45deg"></i> Davet kodu:
-        <span class="invite-code">{{ group.invite_code }}</span>
-        <small class="text-muted ms-2">Bu kodu paylaşarak başkalarını davet et</small>
-    </div>
-    <div>
-        <a href="{% url 'group_update' group.pk %}" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-pencil"></i> Düzenle
-        </a>
-        <a href="{% url 'export_pdf' group.pk %}" class="btn btn-sm btn-outline-dark">
-            <i class="bi bi-file-earmark-pdf"></i> PDF İndir
-        </a>
-        {% if group.created_by == user %}
-        <a href="{% url 'group_delete' group.pk %}" class="btn btn-sm btn-outline-danger">
-            <i class="bi bi-trash"></i> Sil
-        </a>
-        {% endif %}
+<!-- Grup Bilgisi + Davet Kodu -->
+<div class="sm-card mb-3">
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+        <div>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">
+                <span><i class="ti ti-people"></i> {{ group.members.count }} üye</span>
+                <span class="ms-3"><i class="ti ti-receipt"></i> {{ expenses|length }} harcama</span>
+                <span class="ms-3"><i class="ti ti-cash"></i> {{ total_amount|floatformat:2 }} {{ group.currency }}</span>
+            </div>
+            {% if group.description %}
+            <div style="font-size:13px; color:var(--text-secondary);">{{ group.description }}</div>
+            {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div style="font-size:12px; color:var(--text-muted);">
+                Davet kodu:
+                <span class="invite-code">{{ group.invite_code }}</span>
+            </div>
+            <a href="{% url 'group_update' group.pk %}" class="topbar-btn outline" style="padding:4px 10px; font-size:11px;">
+                <i class="ti ti-pencil"></i> Düzenle
+            </a>
+            {% if group.created_by == user %}
+            <a href="{% url 'group_delete' group.pk %}" class="btn-sm-danger" style="padding:4px 10px; font-size:11px;">
+                <i class="ti ti-trash"></i>
+            </a>
+            {% endif %}
+        </div>
     </div>
 </div>
 
 <div class="row g-3">
-    <!-- Sol: Netleştirme + Bakiyeler -->
-    <div class="col-lg-5">
-        <!-- Simplified Debts -->
-        <div class="card simplify-card mb-3">
-            <div class="card-body">
-                <h5 class="mb-3"><i class="bi bi-arrow-left-right"></i> Önerilen Ödemeler</h5>
-                {% if simplified %}
-                <p class="text-muted small mb-2">Aşağıdaki ödemelerle tüm borçlar kapanır:</p>
-                {% for t in simplified %}
-                <div class="transaction-line">
-                    <span class="me-2"><strong>{{ t.from_user.username }}</strong></span>
-                    <i class="bi bi-arrow-right text-muted mx-2"></i>
-                    <span class="me-auto"><strong>{{ t.to_user.username }}</strong></span>
-                    <span class="badge bg-primary">{{ t.amount|floatformat:2 }} {{ group.currency }}</span>
-                    {% if t.from_user == user or t.to_user == user %}
-                    <button class="btn btn-sm btn-success ms-2 quick-settle"
-                            data-from="{{ t.from_user.id }}"
-                            data-to="{{ t.to_user.id }}"
-                            data-amount="{{ t.amount }}"
-                            title="Bu ödemeyi yapıldı olarak işaretle">
-                        <i class="bi bi-check2"></i>
-                    </button>
-                    {% endif %}
-                </div>
-                {% endfor %}
-                {% else %}
-                <p class="text-muted text-center my-3">
-                    <i class="bi bi-check-circle text-success"></i> Tüm borçlar dengede.
-                </p>
+    <!-- Sol: Önerilen Ödemeler + Bakiyeler -->
+    <div class="col-lg-4">
+
+        <!-- Önerilen Ödemeler -->
+        <div class="simplify-card mb-3">
+            <div class="sm-card-header">
+                <span class="sm-card-title"><i class="ti ti-arrows-exchange"></i> Önerilen Ödemeler</span>
+            </div>
+            {% if simplified %}
+            <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">
+                Bu ödemelerle tüm borçlar kapanır:
+            </p>
+            {% for t in simplified %}
+            <div class="transaction-line">
+                <div class="mini-avatar">{{ t.from_user.username|slice:":2"|upper }}</div>
+                <span style="font-size:12px; color:var(--text-secondary); margin:0 6px;">
+                    <strong style="color:var(--text-primary);">{{ t.from_user.username }}</strong>
+                    <i class="ti ti-arrow-right" style="font-size:10px; color:var(--text-muted);"></i>
+                    <strong style="color:var(--text-primary);">{{ t.to_user.username }}</strong>
+                </span>
+                <div class="mini-avatar">{{ t.to_user.username|slice:":2"|upper }}</div>
+                <span style="margin-left:auto; font-size:12px; font-weight:600; color:var(--accent);">
+                    {{ t.amount|floatformat:2 }} {{ group.currency }}
+                </span>
+                {% if t.from_user == user or t.to_user == user %}
+                <button class="btn-sm-success ms-2 quick-settle"
+                        data-from="{{ t.from_user.id }}"
+                        data-to="{{ t.to_user.id }}"
+                        data-amount="{{ t.amount }}"
+                        title="Ödendi olarak işaretle">
+                    <i class="ti ti-check"></i>
+                </button>
                 {% endif %}
             </div>
+            {% endfor %}
+            {% else %}
+            <div style="text-align:center; padding:16px 0; color:var(--green); font-size:13px;">
+                <i class="ti ti-circle-check" style="font-size:24px; display:block; margin-bottom:6px;"></i>
+                Tüm borçlar dengede
+            </div>
+            {% endif %}
         </div>
 
         <!-- Bakiyeler -->
-        <div class="card summary-card">
-            <div class="card-body">
-                <h5 class="mb-3"><i class="bi bi-bar-chart"></i> Bakiyeler</h5>
-                {% for b in balances %}
-                <div class="balance-row {% if b.amount > 0 %}balance-positive{% elif b.amount < 0 %}balance-negative{% else %}balance-zero{% endif %} d-flex justify-content-between">
-                    <span><i class="bi bi-person"></i> {{ b.user.username }}</span>
-                    <span class="{% if b.amount > 0 %}amount-positive{% elif b.amount < 0 %}amount-negative{% endif %}">
-                        {% if b.amount > 0 %}+{% endif %}{{ b.amount|floatformat:2 }} {{ group.currency }}
-                    </span>
-                </div>
-                {% endfor %}
+        <div class="sm-card">
+            <div class="sm-card-header">
+                <span class="sm-card-title"><i class="ti ti-chart-bar"></i> Bakiyeler</span>
             </div>
+            {% for b in balances %}
+            <div class="balance-row {% if b.amount > 0 %}balance-positive{% elif b.amount < 0 %}balance-negative{% else %}balance-zero{% endif %}">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="mini-avatar">{{ b.user.username|slice:":2"|upper }}</div>
+                    <span style="font-size:13px; color:var(--text-primary);">{{ b.user.username }}</span>
+                </div>
+                <span style="font-size:13px; font-weight:600;" class="{% if b.amount > 0 %}text-success{% elif b.amount < 0 %}text-danger{% else %}text-muted{% endif %}">
+                    {% if b.amount > 0 %}+{% endif %}{{ b.amount|floatformat:2 }} {{ group.currency }}
+                </span>
+            </div>
+            {% endfor %}
         </div>
+
     </div>
 
     <!-- Sağ: Harcamalar -->
-    <div class="col-lg-7">
-        <div class="card summary-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0"><i class="bi bi-receipt"></i> Harcamalar</h5>
-                </div>
+    <div class="col-lg-8">
+        <div class="sm-card">
+            <div class="sm-card-header">
+                <span class="sm-card-title"><i class="ti ti-receipt"></i> Harcamalar</span>
+            </div>
 
-                <!-- Filtre -->
-                <form method="get" class="row g-2 mb-3">
-                    <div class="col-md-7">
-                        <input type="text" name="q" value="{{ query }}" class="form-control form-control-sm"
-                               placeholder="Başlık veya açıklamada ara...">
-                    </div>
-                    <div class="col-md-3">
-                        <select name="category" class="form-select form-select-sm">
-                            <option value="">Tüm kategoriler</option>
-                            {% for c in categories %}
-                            <option value="{{ c.id }}" {% if active_category == c.id|stringformat:"s" %}selected{% endif %}>
-                                {{ c.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-grid">
-                        <button class="btn btn-sm btn-outline-secondary">Filtrele</button>
-                    </div>
-                </form>
+            <!-- Filtre -->
+            <form method="get" class="filter-bar mb-3">
+                <input type="text" name="q" value="{{ query }}"
+                       class="form-control" style="flex:1; min-width:160px;"
+                       placeholder="Başlık veya açıklamada ara...">
+                <select name="category" class="form-select" style="width:160px;">
+                    <option value="">Tüm kategoriler</option>
+                    {% for c in categories %}
+                    <option value="{{ c.id }}" {% if active_category == c.id|stringformat:"s" %}selected{% endif %}>
+                        {{ c.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="topbar-btn outline">
+                    <i class="ti ti-filter"></i>
+                </button>
+                {% if query or active_category %}
+                <a href="{% url 'group_detail' group.pk %}" class="topbar-btn outline">
+                    <i class="ti ti-x"></i>
+                </a>
+                {% endif %}
+            </form>
 
-                <!-- Harcama listesi -->
-                {% if expenses %}
-                <div class="list-group list-group-flush">
-                    {% for e in expenses %}
-                    <a href="{% url 'expense_detail' e.pk %}" class="list-group-item list-group-item-action expense-row">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <strong>{{ e.title }}</strong>
+            <!-- Liste -->
+            {% if expenses %}
+            <ul class="sm-list">
+                {% for e in expenses %}
+                <li>
+                    <a href="{% url 'expense_detail' e.pk %}" class="sm-list-item text-decoration-none">
+                        <div class="exp-icon {% cycle 'purple' 'teal' 'amber' 'blue' 'green' %}">
+                            <i class="ti ti-receipt"></i>
+                        </div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-size:13px; font-weight:500; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                {{ e.title }}
                                 {% if e.category %}
-                                <span class="badge bg-secondary ms-1">{{ e.category.name }}</span>
+                                <span style="font-size:10px; background:var(--bg-raised); color:var(--text-muted); padding:1px 6px; border-radius:4px; border:1px solid var(--border); margin-left:4px;">{{ e.category.name }}</span>
                                 {% endif %}
-                                <div class="small text-muted">
-                                    <i class="bi bi-person"></i> {{ e.paid_by.username }} ödedi ·
-                                    {{ e.date|date:"d M Y" }}
-                                </div>
                             </div>
-                            <div class="text-end">
-                                <div class="fw-bold">{{ e.amount|floatformat:2 }} {{ group.currency }}</div>
-                                <small class="text-muted">{{ e.get_split_type_display }}</small>
+                            <div style="font-size:11px; color:var(--text-muted);">
+                                <i class="ti ti-user"></i> {{ e.paid_by.username }} ·
+                                {{ e.date|date:"d M Y" }} ·
+                                {{ e.get_split_type_display }}
+                            </div>
+                        </div>
+                        <div style="text-align:right; flex-shrink:0;">
+                            <div style="font-size:14px; font-weight:600; color:var(--text-primary);">
+                                {{ e.amount|floatformat:2 }} {{ group.currency }}
                             </div>
                         </div>
                     </a>
-                    {% endfor %}
-                </div>
+                </li>
+                {% endfor %}
+            </ul>
 
-                {% if is_paginated %}
-<nav class="mt-3">
-    <ul class="pagination pagination-sm justify-content-center">
-        {% if page_obj.has_previous %}
-        <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query }}&category={{ active_category }}">
-                Önceki
-            </a>
-        </li>
-        {% endif %}
-        <li class="page-item active">
-            <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-        </li>
-        {% if page_obj.has_next %}
-        <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query }}&category={{ active_category }}">
-                Sonraki
-            </a>
-        </li>
-        {% endif %}
-    </ul>
-</nav>
-{% endif %}
-                {% else %}
-                <div class="empty-state">
-                    <i class="bi bi-receipt" style="font-size: 2.5rem;"></i>
-                    <p class="mt-3">Henüz harcama yok.</p>
-                    <a href="{% url 'expense_create' group.pk %}" class="btn btn-primary btn-sm">İlk harcamayı ekle</a>
-                </div>
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="sm-pagination">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&category={{ active_category }}">
+                    <i class="ti ti-chevron-left"></i>
+                </a>
+                {% endif %}
+                <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&category={{ active_category }}">
+                    <i class="ti ti-chevron-right"></i>
+                </a>
                 {% endif %}
             </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state">
+                <i class="ti ti-receipt"></i>
+                <p>Henüz harcama yok.</p>
+                <a href="{% url 'expense_create' group.pk %}" class="btn-sm-primary">
+                    <i class="ti ti-plus"></i> İlk harcamayı ekle
+                </a>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -186,7 +205,6 @@
 
 {% block extra_js %}
 <script>
-// AJAX hızlı ödeme
 document.querySelectorAll('.quick-settle').forEach(function (btn) {
     btn.addEventListener('click', function (e) {
         e.preventDefault();
@@ -205,11 +223,8 @@ document.querySelectorAll('.quick-settle').forEach(function (btn) {
         })
         .then(r => r.json())
         .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Hata: ' + (data.error || 'bilinmiyor'));
-            }
+            if (data.success) location.reload();
+            else alert('Hata: ' + (data.error || 'bilinmiyor'));
         });
     });
 });
@@ -218,9 +233,7 @@ function getCookie(name) {
     let value = null;
     document.cookie.split(';').forEach(function (c) {
         c = c.trim();
-        if (c.startsWith(name + '=')) {
-            value = decodeURIComponent(c.substring(name.length + 1));
-        }
+        if (c.startsWith(name + '=')) value = decodeURIComponent(c.substring(name.length + 1));
     });
     return value;
 }
