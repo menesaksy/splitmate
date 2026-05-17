@@ -1,55 +1,75 @@
 {% extends 'base.html' %}
 {% block title %}{{ expense.title }} · SplitMate{% endblock %}
+{% block page_title %}Harcama Detayı{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'group_detail' expense.group.pk %}" class="topbar-btn outline">
+    <i class="ti ti-arrow-left"></i> Gruba Dön
+</a>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-7">
-        <div class="card summary-card">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                        <h4 class="mb-1">{{ expense.title }}</h4>
-                        <div class="text-muted small">
-                            <a href="{% url 'group_detail' expense.group.pk %}">{{ expense.group.name }}</a>
-                            · {{ expense.date|date:"d M Y" }}
-                        </div>
-                    </div>
-                    <div class="fs-3 fw-bold">{{ expense.amount|floatformat:2 }} {{ expense.group.currency }}</div>
-                </div>
-
-                {% if expense.description %}
-                <p>{{ expense.description }}</p>
-                {% endif %}
-
-                <ul class="list-unstyled small">
-                    <li><i class="bi bi-person"></i> <strong>Ödeyen:</strong> {{ expense.paid_by.username }}</li>
-                    {% if expense.category %}
-                    <li><i class="bi bi-tag"></i> <strong>Kategori:</strong> {{ expense.category.name }}</li>
-                    {% endif %}
-                    <li><i class="bi bi-pie-chart"></i> <strong>Paylaşım:</strong> {{ expense.get_split_type_display }}</li>
-                </ul>
-
-                <hr>
-                <h6 class="mb-2"><i class="bi bi-people"></i> Kişi Başı Paylar</h6>
-                <div class="list-group list-group-flush">
-                    {% for s in expense.shares.all %}
-                    <div class="list-group-item d-flex justify-content-between">
-                        <span><i class="bi bi-person-circle"></i> {{ s.user.username }}</span>
-                        <span>{{ s.amount|floatformat:2 }} {{ expense.group.currency }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <div class="mt-4">
-                    <a href="{% url 'group_detail' expense.group.pk %}" class="btn btn-link">← Gruba dön</a>
-                    {% if expense.paid_by == user %}
-                    <a href="{% url 'expense_delete' expense.pk %}" class="btn btn-outline-danger float-end">
-                        <i class="bi bi-trash"></i> Sil
-                    </a>
-                    {% endif %}
-                </div>
+<div class="form-card" style="max-width:600px;">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h4 style="margin-bottom:4px;">{{ expense.title }}</h4>
+            <div style="font-size:12px; color:var(--text-muted);">
+                <a href="{% url 'group_detail' expense.group.pk %}" style="color:var(--accent);">{{ expense.group.name }}</a>
+                · {{ expense.date|date:"d M Y" }}
             </div>
         </div>
+        <div style="font-size:24px; font-weight:600; color:var(--text-primary);">
+            {{ expense.amount|floatformat:2 }}
+            <span style="font-size:14px; color:var(--text-muted);">{{ expense.group.currency }}</span>
+        </div>
     </div>
+
+    {% if expense.description %}
+    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">{{ expense.description }}</p>
+    {% endif %}
+
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+        <div style="display:flex; gap:10px; align-items:center; font-size:13px;">
+            <i class="ti ti-user" style="color:var(--accent);"></i>
+            <span style="color:var(--text-muted);">Ödeyen:</span>
+            <strong style="color:var(--text-primary);">{{ expense.paid_by.username }}</strong>
+        </div>
+        {% if expense.category %}
+        <div style="display:flex; gap:10px; align-items:center; font-size:13px;">
+            <i class="ti ti-tag" style="color:var(--accent);"></i>
+            <span style="color:var(--text-muted);">Kategori:</span>
+            <strong style="color:var(--text-primary);">{{ expense.category.name }}</strong>
+        </div>
+        {% endif %}
+        <div style="display:flex; gap:10px; align-items:center; font-size:13px;">
+            <i class="ti ti-pie-chart" style="color:var(--accent);"></i>
+            <span style="color:var(--text-muted);">Paylaşım:</span>
+            <strong style="color:var(--text-primary);">{{ expense.get_split_type_display }}</strong>
+        </div>
+    </div>
+
+    <hr style="border-color:var(--border); margin:16px 0;">
+    <h6 style="color:var(--text-secondary); margin-bottom:12px;">
+        <i class="ti ti-people"></i> Kişi Başı Paylar
+    </h6>
+
+    {% for s in expense.shares.all %}
+    <div class="d-flex align-items-center gap-3 mb-2 p-2" style="background:var(--bg-raised); border-radius:var(--radius-md);">
+        <div class="user-avatar" style="width:28px;height:28px;font-size:10px;">
+            {{ s.user.username|slice:":2"|upper }}
+        </div>
+        <span style="flex:1; font-size:13px; color:var(--text-primary);">{{ s.user.username }}</span>
+        <span style="font-size:13px; font-weight:600; color:var(--text-primary);">
+            {{ s.amount|floatformat:2 }} {{ expense.group.currency }}
+        </span>
+    </div>
+    {% endfor %}
+
+    {% if expense.paid_by == user %}
+    <hr style="border-color:var(--border); margin:20px 0;">
+    <a href="{% url 'expense_delete' expense.pk %}" class="btn-sm-danger">
+        <i class="ti ti-trash"></i> Harcamayı Sil
+    </a>
+    {% endif %}
 </div>
 {% endblock %}

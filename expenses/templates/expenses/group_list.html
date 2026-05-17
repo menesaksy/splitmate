@@ -1,40 +1,35 @@
 {% extends 'base.html' %}
 {% block title %}Gruplarım · SplitMate{% endblock %}
+{% block page_title %}Gruplarım{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'join_group' %}" class="topbar-btn outline">
+    <i class="ti ti-door-enter"></i> Gruba Katıl
+</a>
+<a href="{% url 'group_create' %}" class="topbar-btn">
+    <i class="ti ti-plus"></i> Yeni Grup
+</a>
+{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0"><i class="bi bi-people"></i> Gruplarım</h3>
-    <div>
-        <a href="{% url 'join_group' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-box-arrow-in-right"></i> Gruba Katıl
-        </a>
-        <a href="{% url 'group_create' %}" class="btn btn-primary">
-            <i class="bi bi-plus-lg"></i> Yeni Grup
-        </a>
-    </div>
-</div>
-
 {% if groups %}
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+<div class="row g-3">
     {% for g in groups %}
-    <div class="col">
-        <a href="{% url 'group_detail' g.pk %}" class="text-decoration-none text-reset">
-            <div class="card group-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="card-title mb-1">
-                            <i class="bi bi-folder-fill text-warning"></i> {{ g.name }}
-                        </h5>
-                        <span class="badge bg-light text-dark border">{{ g.currency }}</span>
-                    </div>
-                    {% if g.description %}
-                    <p class="text-muted small mb-2">{{ g.description|truncatewords:12 }}</p>
-                    {% endif %}
-                    <div class="d-flex justify-content-between mt-3 small text-muted">
-                        <span><i class="bi bi-receipt"></i> {{ g.expense_count }} harcama</span>
-                        <span>{{ g.total_amount|default:0|floatformat:2 }} {{ g.currency }}</span>
-                    </div>
+    <div class="col-md-6 col-lg-4">
+        <a href="{% url 'group_detail' g.pk %}" class="group-card d-block text-decoration-none">
+            <div class="d-flex align-items-start justify-content-between mb-3">
+                <div class="exp-icon purple">
+                    <i class="ti ti-users"></i>
                 </div>
+                <span style="font-size:11px; color:var(--text-muted); background:var(--bg-raised); padding:3px 8px; border-radius:4px; border:1px solid var(--border);">{{ g.currency }}</span>
+            </div>
+            <div style="font-size:15px; font-weight:500; color:var(--text-primary); margin-bottom:4px;">{{ g.name }}</div>
+            {% if g.description %}
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">{{ g.description|truncatewords:10 }}</div>
+            {% endif %}
+            <div class="d-flex justify-content-between mt-3" style="font-size:12px; color:var(--text-muted);">
+                <span><i class="ti ti-receipt"></i> {{ g.expense_count }} harcama</span>
+                <span style="font-weight:500; color:var(--text-primary);">{{ g.total_amount|default:0|floatformat:2 }} {{ g.currency }}</span>
             </div>
         </a>
     </div>
@@ -42,10 +37,10 @@
 </div>
 {% else %}
 <div class="empty-state">
-    <i class="bi bi-people" style="font-size: 3rem;"></i>
-    <p class="mt-3">Henüz bir grupta değilsin.</p>
-    <a href="{% url 'group_create' %}" class="btn btn-primary">Grup Oluştur</a>
-    <a href="{% url 'join_group' %}" class="btn btn-outline-secondary">Davet Koduyla Katıl</a>
+    <i class="ti ti-users-group"></i>
+    <p>Henüz bir grupta değilsin.</p>
+    <a href="{% url 'group_create' %}" class="btn-sm-primary me-2">Grup Oluştur</a>
+    <a href="{% url 'join_group' %}" class="btn-sm-outline">Davet Koduyla Katıl</a>
 </div>
 {% endif %}
 {% endblock %}

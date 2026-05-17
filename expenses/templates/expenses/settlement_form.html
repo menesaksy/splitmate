@@ -1,32 +1,36 @@
 {% extends 'base.html' %}
 {% block title %}Ödeme · SplitMate{% endblock %}
+{% block page_title %}Ödeme Kaydet{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-6">
-        <div class="card summary-card">
-            <div class="card-body p-4">
-                <h4 class="mb-3"><i class="bi bi-cash-stack"></i> Ödeme Kaydet</h4>
-                <p class="text-muted small">Bir grup üyesinden diğerine yapılan ödemeyi kaydet.</p>
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    {% for field in form %}
-                    <div class="mb-3">
-                        <label class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                        <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                    {% if form.non_field_errors %}
-                    <div class="text-danger small mb-3">{{ form.non_field_errors }}</div>
-                    {% endif %}
-                    <button type="submit" class="btn btn-success">Kaydet</button>
-                    <a href="{% url 'group_detail' group.pk %}" class="btn btn-link">İptal</a>
-                </form>
-            </div>
+<div class="form-card">
+    <h4><i class="ti ti-cash-banknote"></i> Ödeme Kaydet</h4>
+    <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">
+        Bir grup üyesinden diğerine yapılan ödemeyi kaydet. Bu işlem borç bakiyelerini günceller.
+    </p>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3">
+            <label style="display:block; font-size:12px; font-weight:500; color:var(--text-secondary); margin-bottom:5px;">
+                {{ field.label }}
+            </label>
+            {{ field }}
+            {% if field.errors %}
+            <div style="color:var(--red); font-size:11px; margin-top:4px;">{{ field.errors|striptags }}</div>
+            {% endif %}
         </div>
-    </div>
+        {% endfor %}
+        {% if form.non_field_errors %}
+        <div style="color:var(--red); font-size:12px; margin-bottom:12px;">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <hr style="border-color:var(--border); margin:20px 0;">
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn-sm-primary" style="background:var(--green); border-color:var(--green);">
+                <i class="ti ti-check"></i> Kaydet
+            </button>
+            <a href="{% url 'group_detail' group.pk %}" class="btn-sm-outline">İptal</a>
+        </div>
+    </form>
 </div>
 {% endblock %}

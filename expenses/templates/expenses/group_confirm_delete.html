@@ -1,20 +1,25 @@
 {% extends 'base.html' %}
 {% block title %}Sil · SplitMate{% endblock %}
+{% block page_title %}Harcamayı Sil{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-6">
-        <div class="card border-danger">
-            <div class="card-body">
-                <h4 class="text-danger"><i class="bi bi-exclamation-triangle"></i> Harcamayı Sil</h4>
-                <p>"<strong>{{ object.title }}</strong>" silinecek. Tüm paylaşım kayıtları da silinir.</p>
-                <form method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Evet, Sil</button>
-                    <a href="{% url 'group_detail' object.group.pk %}" class="btn btn-secondary">İptal</a>
-                </form>
-            </div>
-        </div>
+<div class="form-card" style="border-color:var(--red) !important;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+        <div class="exp-icon red"><i class="ti ti-alert-triangle"></i></div>
+        <h4 style="margin:0; color:var(--red);">Harcamayı Sil</h4>
     </div>
+    <p style="color:var(--text-secondary); margin-bottom:20px;">
+        "<strong style="color:var(--text-primary);">{{ object.title }}</strong>" harcaması ve tüm paylaşım kayıtları
+        <strong style="color:var(--red);">kalıcı olarak</strong> silinecek.
+    </p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn-sm-danger">
+                <i class="ti ti-trash"></i> Evet, Sil
+            </button>
+            <a href="{% url 'group_detail' object.group.pk %}" class="btn-sm-outline">İptal</a>
+        </div>
+    </form>
 </div>
 {% endblock %}
