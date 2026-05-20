@@ -20,4 +20,10 @@ urlpatterns = [
 
     path('signup/', views.signup, name='signup'),
     path('groups/<int:pk>/export-pdf/', views.export_group_pdf, name='export_pdf'),
+
+    path('stats/', views.StatsView.as_view(), name='stats'),
+
+    path('notifications/', views.NotificationListView.as_view(), name='notifications'),
+    path('notifications/read/', views.mark_notifications_read, name='mark_notifications_read'),
+    path('notifications/count/', views.unread_notification_count, name='unread_notification_count'),
 ]

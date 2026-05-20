@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Bildirimler · SplitMate{% endblock %}
+{% block page_title %}Bildirimler{% endblock %}
+
+{% block topbar_actions %}
+{% if unread_count > 0 %}
+<button class="topbar-btn outline" id="markAllRead">
+    <i class="ti ti-checks"></i> Tümünü Okundu İşaretle
+</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 680px;">
+    {% if notifications %}
+    <div class="sm-card">
+        <ul class="sm-list" id="notifList">
+            {% for n in notifications %}
+            <li class="sm-list-item {% if not n.is_read %}notif-unread{% endif %}"
+                style="{% if not n.is_read %}background:var(--accent-soft); border-radius:var(--radius-md); padding:10px 12px; margin-bottom:4px;{% endif %}">
+                <div class="exp-icon {% if n.notification_type == 'expense' %}purple{% elif n.notification_type == 'settlement' %}green{% else %}blue{% endif %}">
+                    <i class="ti ti-{% if n.notification_type == 'expense' %}receipt{% elif n.notification_type == 'settlement' %}cash-banknote{% else %}user-plus{% endif %}"></i>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:{% if not n.is_read %}600{% else %}400{% endif %}; color:var(--text-primary);">
+                        {{ n.title }}
+                    </div>
+                    <div style="font-size:12px; color:var(--text-muted);">{{ n.message }}</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+                        {% if n.group %}
+                        <a href="{% url 'group_detail' n.group.pk %}" style="color:var(--accent);">{{ n.group.name }}</a> ·
+                        {% endif %}
+                        {{ n.created_at|timesince }} önce
+                    </div>
+                </div>
+                {% if not n.is_read %}
+                <div style="width:8px; height:8px; border-radius:50%; background:var(--accent); flex-shrink:0;"></div>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="ti ti-bell-off"></i>
+        <p>Henüz bildirim yok.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('markAllRead')?.addEventListener('click', function() {
+    fetch("{% url 'mark_notifications_read' %}", {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCookie('csrftoken')}
+    }).then(() => location.reload());
+});
+
+function getCookie(name) {
+    let value = null;
+    document.cookie.split(';').forEach(c => {
+        c = c.trim();
+        if (c.startsWith(name + '=')) value = decodeURIComponent(c.substring(name.length + 1));
+    });
+    return value;
+}
+</script>
+{% endblock %}

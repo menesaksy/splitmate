@@ -1,9 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
+from .services import calculate_balances, simplify_debts, build_expense_shares, get_exchange_rate, create_notifications
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
+from django.db.models import Sum, Count, Q, Max
+from datetime import datetime, timedelta
 from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.db.models import Sum, Count, Q
 from django.urls import reverse_lazy
@@ -15,7 +18,7 @@ from django.core.paginator import Paginator
 from decimal import Decimal
 import json
 
-from .models import Group, Membership, Expense, ExpenseShare, Settlement, Category
+from .models import Group, Membership, Expense, ExpenseShare, Notification, Settlement, Category
 from .forms import GroupForm, ExpenseForm, SettlementForm, JoinGroupForm
 from .services import calculate_balances, simplify_debts, build_expense_shares, get_exchange_rate
 
@@ -56,8 +59,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 total_owed_to_me += my_balance
             elif my_balance < 0:
                 total_i_owe += -my_balance
-        # Para birimine göre grupla
-        from collections import defaultdict
+
+        # Para birimine göre bakiye grupla
         balances_by_currency = {}
         for g in groups:
             curr = g.currency
@@ -72,7 +75,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             if my_bal > 0:
                 balances_by_currency[curr]['owed'] += my_bal
             elif my_bal < 0:
-                balances_by_currency[curr]['owe'] += -my_bal
+                balances_by_currency[curr]['owe'] += abs(my_bal)
             balances_by_currency[curr]['net'] = (
                 balances_by_currency[curr]['owed'] - balances_by_currency[curr]['owe']
             )
@@ -234,6 +237,7 @@ def join_group(request):
                 messages.info(request, 'Zaten bu grubun uyesisin.')
             else:
                 Membership.objects.create(user=request.user, group=group)
+                create_notifications(group=group, actor=request.user)
                 messages.success(request, f'"{group.name}" grubuna katildin.')
             return redirect('group_detail', pk=group.pk)
     else:
@@ -283,6 +287,7 @@ class ExpenseCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
         build_expense_shares(self.object, split_type, members, custom)
         messages.success(self.request, 'Harcama eklendi.')
+        create_notifications(expense=self.object, actor=self.request.user)
         return response
 
     def get_success_url(self):
@@ -340,6 +345,7 @@ class SettlementCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def form_valid(self, form):
         form.instance.group = self.group
         messages.success(self.request, 'Odeme kaydedildi.')
+        create_notifications(settlement=self.object, actor=self.request.user)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -470,3 +476,114 @@ def export_group_pdf(request, pk):
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="splitmate_{group.name}.pdf"'
     return response
+
+class StatsView(LoginRequiredMixin, TemplateView):
+    template_name = 'expenses/stats.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        from datetime import datetime, timedelta
+
+        groups = Group.objects.filter(members=user).distinct()
+
+        period = self.request.GET.get('period', 'month')
+        now = datetime.now().date()
+        if period == 'month':
+            start_date = now.replace(day=1)
+        elif period == '3months':
+            start_date = now - timedelta(days=90)
+        else:
+            start_date = None
+
+        expenses_qs = Expense.objects.filter(group__in=groups)
+        if start_date:
+            expenses_qs = expenses_qs.filter(date__gte=start_date)
+
+        total = expenses_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        count = expenses_qs.count()
+
+        by_category = list(expenses_qs.values(
+            'category__name'
+        ).annotate(
+            total=Sum('amount'), count=Count('id')
+        ).order_by('-total')[:8])
+
+        monthly_data = []
+        for i in range(5, -1, -1):
+            month_date = now - timedelta(days=30 * i)
+            month_start = month_date.replace(day=1)
+            if month_date.month == 12:
+                month_end = month_date.replace(year=month_date.year + 1, month=1, day=1)
+            else:
+                month_end = month_date.replace(month=month_date.month + 1, day=1)
+            month_total = Expense.objects.filter(
+                group__in=groups, date__gte=month_start, date__lt=month_end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            monthly_data.append({
+                'month': month_date.strftime('%b %Y'),
+                'total': float(month_total)
+            })
+
+        by_group = list(expenses_qs.values(
+            'group__name', 'group__currency'
+        ).annotate(
+            total=Sum('amount'), count=Count('id')
+        ).order_by('-total')[:6])
+
+        by_payer = list(expenses_qs.values(
+            'paid_by__username'
+        ).annotate(total=Sum('amount')).order_by('-total')[:6])
+
+        biggest = expenses_qs.order_by('-amount').first()
+
+        ctx.update({
+            'period': period,
+            'total': total,
+            'count': count,
+            'by_category': by_category,
+            'monthly_data': monthly_data,
+            'by_group': by_group,
+            'by_payer': by_payer,
+            'biggest': biggest,
+            'groups': groups,
+        })
+        return ctx
+    
+# ---------- Bildirimler ----------
+
+class NotificationListView(LoginRequiredMixin, TemplateView):
+    template_name = 'expenses/notifications.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from .models import Notification
+        qs = Notification.objects.filter(
+            user=self.request.user
+        ).select_related('group', 'expense')
+    
+        unread_count = qs.filter(is_read=False).count()
+        notifications = qs[:50]
+    
+        ctx.update({
+            'notifications': notifications,
+            'unread_count': unread_count,
+        })
+        return ctx
+
+@login_required
+@require_POST
+def mark_notifications_read(request):
+    from .models import Notification
+    Notification.objects.filter(
+        user=request.user, is_read=False
+    ).update(is_read=True)
+    return JsonResponse({'success': True})
+
+@login_required
+def unread_notification_count(request):
+    from .models import Notification
+    count = Notification.objects.filter(
+        user=request.user, is_read=False
+    ).count()
+    return JsonResponse({'count': count})

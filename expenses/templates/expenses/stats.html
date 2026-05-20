@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% block title %}İstatistikler · SplitMate{% endblock %}
+{% block page_title %}İstatistikler{% endblock %}
+
+{% block topbar_actions %}
+<form method="get" style="display:flex; gap:6px;">
+    <button type="submit" name="period" value="month"
+            class="topbar-btn {% if period == 'month' %}{% else %}outline{% endif %}">
+        Bu Ay
+    </button>
+    <button type="submit" name="period" value="3months"
+            class="topbar-btn {% if period == '3months' %}{% else %}outline{% endif %}">
+        Son 3 Ay
+    </button>
+    <button type="submit" name="period" value="all"
+            class="topbar-btn {% if period == 'all' %}{% else %}outline{% endif %}">
+        Tümü
+    </button>
+</form>
+{% endblock %}
+
+{% block content %}
+
+<!-- Özet Kartlar -->
+<div class="metric-grid mb-4">
+    <div class="metric-card">
+        <div class="metric-label"><i class="ti ti-cash"></i> Toplam Harcama</div>
+        <div class="metric-value neutral">{{ total|floatformat:2 }} ₺</div>
+        <div class="metric-sub">{{ count }} harcama kaydı</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label"><i class="ti ti-receipt"></i> Ortalama Harcama</div>
+        <div class="metric-value neutral">
+            {% if count > 0 %}{{ total|floatformat:0 }}{% else %}0{% endif %} ₺
+        </div>
+        <div class="metric-sub">Kayıt başına ortalama</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label"><i class="ti ti-trending-up"></i> En Büyük Harcama</div>
+        {% if biggest %}
+        <div class="metric-value neutral">{{ biggest.amount|floatformat:2 }} ₺</div>
+        <div class="metric-sub">{{ biggest.title }}</div>
+        {% else %}
+        <div class="metric-value neutral">—</div>
+        <div class="metric-sub">Henüz harcama yok</div>
+        {% endif %}
+    </div>
+    <div class="metric-card">
+        <div class="metric-label"><i class="ti ti-users-group"></i> Aktif Grup</div>
+        <div class="metric-value neutral">{{ groups.count }}</div>
+        <div class="metric-sub">Toplam grup sayısı</div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <!-- Aylık Trend -->
+    <div class="col-lg-8">
+        <div class="sm-card">
+            <div class="sm-card-header">
+                <span class="sm-card-title"><i class="ti ti-chart-line"></i> Aylık Harcama Trendi</span>
+            </div>
+            <div style="height:220px; position:relative;">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kategori -->
+    <div class="col-lg-4">
+        <div class="sm-card">
+            <div class="sm-card-header">
+                <span class="sm-card-title"><i class="ti ti-chart-donut"></i> Kategori Dağılımı</span>
+            </div>
+            {% if by_category %}
+            <div style="height:180px; position:relative;">
+                <canvas id="categoryChart"></canvas>
+            </div>
+            {% else %}
+            <div class="empty-state" style="padding:2rem 0;">
+                <i class="ti ti-tag"></i>
+                <p>Kategori verisi yok</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Grup bazlı -->
+    <div class="col-lg-6">
+        <div class="sm-card">
+            <div class="sm-card-header">
+                <span class="sm-card-title"><i class="ti ti-users"></i> Gruplara Göre</span>
+            </div>
+            {% if by_group %}
+            <div style="height:200px; position:relative;">
+                <canvas id="groupChart"></canvas>
+            </div>
+            {% else %}
+            <div class="empty-state" style="padding:2rem 0;">
+                <i class="ti ti-users-group"></i>
+                <p>Henüz harcama yok</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Kişi bazlı -->
+    <div class="col-lg-6">
+        <div class="sm-card">
+            <div class="sm-card-header">
+                <span class="sm-card-title"><i class="ti ti-user-dollar"></i> Kişiye Göre Ödeme</span>
+            </div>
+            {% if by_payer %}
+            <ul class="sm-list">
+                {% for p in by_payer %}
+                <li class="sm-list-item">
+                    <div class="user-avatar" style="width:30px;height:30px;font-size:11px;flex-shrink:0;">
+                        {{ p.paid_by__username|slice:":2"|upper }}
+                    </div>
+                    <span style="flex:1; font-size:13px; color:var(--text-primary);">{{ p.paid_by__username }}</span>
+                    <span style="font-size:13px; font-weight:600; color:var(--accent);">
+                        {{ p.total|floatformat:2 }} ₺
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="empty-state" style="padding:2rem 0;">
+                <i class="ti ti-user"></i>
+                <p>Henüz ödeme yok</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+const textColor = isDark ? '#718096' : '#6b7280';
+const accentColor = '#6366f1';
+
+Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+Chart.defaults.font.size = 11;
+
+// ── Trend Chart ──
+const trendData = {{ monthly_data|safe }};
+new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+        labels: trendData.map(d => d.month),
+        datasets: [{
+            label: 'Harcama',
+            data: trendData.map(d => d.total),
+            borderColor: accentColor,
+            backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: accentColor,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { color: gridColor }, ticks: { color: textColor } },
+            y: { grid: { color: gridColor }, ticks: { color: textColor, callback: v => '₺' + v.toLocaleString() } }
+        }
+    }
+});
+
+{% if by_category %}
+// ── Category Chart ──
+const catData = {{ by_category|safe }};
+const catColors = ['#6366f1','#8b5cf6','#a78bfa','#0d9488','#14b8a6','#f59e0b','#ef4444','#64748b'];
+new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+        labels: catData.map(d => d.category__name || 'Kategorisiz'),
+        datasets: [{
+            data: catData.map(d => parseFloat(d.total)),
+            backgroundColor: catColors,
+            borderWidth: 0,
+            hoverOffset: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: textColor, boxWidth: 10, padding: 10, font: { size: 10 } }
+            }
+        }
+    }
+});
+{% endif %}
+
+{% if by_group %}
+// ── Group Chart ──
+const groupData = {{ by_group|safe }};
+new Chart(document.getElementById('groupChart'), {
+    type: 'bar',
+    data: {
+        labels: groupData.map(d => d.group__name),
+        datasets: [{
+            label: 'Toplam',
+            data: groupData.map(d => parseFloat(d.total)),
+            backgroundColor: isDark ? 'rgba(99,102,241,0.7)' : 'rgba(99,102,241,0.8)',
+            borderRadius: 6,
+            borderSkipped: false,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { display: false }, ticks: { color: textColor } },
+            y: { grid: { color: gridColor }, ticks: { color: textColor, callback: v => '₺' + v } }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

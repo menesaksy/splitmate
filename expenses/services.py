@@ -135,3 +135,41 @@ def get_exchange_rate(from_currency, to_currency='TRY'):
         return Decimal(str(rate)) if rate else None
     except Exception:
         return None
+    
+def create_notifications(expense=None, settlement=None, group=None, actor=None):
+    """Harcama veya ödeme eklenince grup üyelerine bildirim gönder."""
+    from .models import Notification
+
+    if expense:
+        members = expense.group.members.exclude(id=actor.id)
+        for member in members:
+            Notification.objects.create(
+                user=member,
+                notification_type='expense',
+                title=f'{actor.username} yeni harcama ekledi',
+                message=f'"{expense.title}" — {expense.amount} {expense.group.currency}',
+                group=expense.group,
+                expense=expense,
+            )
+
+    if settlement:
+        members = settlement.group.members.exclude(id=actor.id)
+        for member in members:
+            Notification.objects.create(
+                user=member,
+                notification_type='settlement',
+                title=f'{actor.username} ödeme kaydetti',
+                message=f'{settlement.amount} {settlement.group.currency} ödeme yapıldı',
+                group=settlement.group,
+            )
+
+    if group and actor:
+        members = group.members.exclude(id=actor.id)
+        for member in members:
+            Notification.objects.create(
+                user=member,
+                notification_type='group_join',
+                title=f'{actor.username} gruba katıldı',
+                message=f'"{group.name}" grubuna yeni üye katıldı',
+                group=group,
+            )

@@ -153,3 +153,32 @@ class Settlement(models.Model):
 
     def __str__(self):
         return f"{self.from_user.username} → {self.to_user.username}: {self.amount}"
+    
+class Notification(models.Model):
+    TYPE_CHOICES = [
+        ('expense', 'Yeni Harcama'),
+        ('settlement', 'Ödeme'),
+        ('group_join', 'Gruba Katılım'),
+    ]
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='notifications'
+    )
+    notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    group = models.ForeignKey(
+        'Group', on_delete=models.CASCADE, null=True, blank=True
+    )
+    expense = models.ForeignKey(
+        'Expense', on_delete=models.CASCADE, null=True, blank=True
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"
+    
