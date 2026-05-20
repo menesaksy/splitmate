@@ -7,3 +7,5 @@ db.sqlite3
 staticfiles/
 .vscode/
 .idea/
+*.sqlite3
+config/.env
