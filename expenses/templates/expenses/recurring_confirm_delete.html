@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Tekrarlayan Harcamayı Sil</h2>
+  <p><strong>{{ object.title }}</strong> tekrarlayan harcamasını silmek istediğine emin misin?</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Evet, Sil</button>
+    <a href="{% url 'recurring_list' %}" class="btn btn-secondary">İptal</a>
+  </form>
+</div>
+{% endblock %}

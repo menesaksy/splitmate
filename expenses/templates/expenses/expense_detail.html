@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}{{ expense.title }} · SplitMate{% endblock %}
 {% block page_title %}Harcama Detayı{% endblock %}
+{% if expense.paid_by == request.user %}
+<a href="{% url 'expense_update' expense.pk %}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-pencil"></i> Düzenle
+</a>
+{% endif %}
 
 {% block topbar_actions %}
 <a href="{% url 'group_detail' expense.group.pk %}" class="topbar-btn outline">

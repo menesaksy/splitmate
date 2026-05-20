@@ -182,3 +182,46 @@ class Notification(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.title}"
     
+class RecurringExpense(models.Model):
+    """Otomatik tekrarlayan harcama şablonu."""
+
+    FREQUENCY_CHOICES = [
+        ('monthly', 'Aylık'),
+        ('weekly', 'Haftalık'),
+        ('yearly', 'Yıllık'),
+    ]
+
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='recurring_expenses')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recurring_expenses')
+    category = models.ForeignKey(
+        Category, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    split_type = models.CharField(max_length=10, choices=Expense.SPLIT_CHOICES, default='equal')
+    frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES, default='monthly')
+    start_date = models.DateField()
+    next_run = models.DateField()
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='created_recurring_expenses'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.title} ({self.get_frequency_display()}) — {self.group.name}'
+
+    def compute_next_run(self, from_date):
+        """Bir sonraki çalışma tarihini hesaplar."""
+        from dateutil.relativedelta import relativedelta
+        if self.frequency == 'weekly':
+            return from_date + relativedelta(weeks=1)
+        elif self.frequency == 'monthly':
+            return from_date + relativedelta(months=1)
+        elif self.frequency == 'yearly':
+            return from_date + relativedelta(years=1)
+        return from_date

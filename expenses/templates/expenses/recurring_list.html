@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Tekrarlayan Harcamalar</h2>
+  </div>
+  {% if recurring_list %}
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Başlık</th>
+          <th>Grup</th>
+          <th>Tutar</th>
+          <th>Sıklık</th>
+          <th>Sonraki</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rec in recurring_list %}
+        <tr>
+          <td>{{ rec.title }}</td>
+          <td>{{ rec.group.name }}</td>
+          <td>{{ rec.amount }} {{ rec.group.currency }}</td>
+          <td>{{ rec.get_frequency_display }}</td>
+          <td>{{ rec.next_run }}</td>
+          <td>
+            <a href="{% url 'recurring_delete' rec.pk %}"
+               class="btn btn-sm btn-outline-danger">Sil</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">Henüz tekrarlayan harcama yok.</p>
+  {% endif %}
+</div>
+{% endblock %}

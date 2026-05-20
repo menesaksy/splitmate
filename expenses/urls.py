@@ -13,6 +13,7 @@ urlpatterns = [
 
     path('groups/<int:group_pk>/expense/new/', views.ExpenseCreateView.as_view(), name='expense_create'),
     path('expense/<int:pk>/', views.ExpenseDetailView.as_view(), name='expense_detail'),
+    path('expense/<int:pk>/edit/', views.ExpenseUpdateView.as_view(), name='expense_update'),
     path('expense/<int:pk>/delete/', views.ExpenseDeleteView.as_view(), name='expense_delete'),
 
     path('groups/<int:group_pk>/settle/', views.SettlementCreateView.as_view(), name='settlement_create'),
@@ -26,4 +27,8 @@ urlpatterns = [
     path('notifications/', views.NotificationListView.as_view(), name='notifications'),
     path('notifications/read/', views.mark_notifications_read, name='mark_notifications_read'),
     path('notifications/count/', views.unread_notification_count, name='unread_notification_count'),
+
+    path('recurring/', views.RecurringExpenseListView.as_view(), name='recurring_list'),
+    path('groups/<int:group_pk>/recurring/new/', views.RecurringExpenseCreateView.as_view(), name='recurring_create'),
+    path('recurring/<int:pk>/delete/', views.RecurringExpenseDeleteView.as_view(), name='recurring_delete'),
 ]

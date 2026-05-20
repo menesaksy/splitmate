@@ -1,9 +1,13 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Group, Expense, Settlement
-from .serializers import GroupSerializer, ExpenseSerializer, SettlementSerializer
-from .services import calculate_balances, simplify_debts
+from .serializers import (
+    GroupSerializer,
+    ExpenseSerializer, ExpenseWriteSerializer,
+    SettlementSerializer, SettlementWriteSerializer,
+)
+from .services import calculate_balances, simplify_debts, build_expense_shares, create_notifications
 
 
 class IsMember(permissions.BasePermission):
@@ -17,10 +21,6 @@ class IsMember(permissions.BasePermission):
 
 
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Kullanıcının dahil olduğu grupları listeler ve detay verir.
-    ReadOnly — sadece GET işlemi. Grup yönetimi web arayüzünden yapılır.
-    """
     serializer_class = GroupSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -31,14 +31,13 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['get'])
     def balances(self, request, pk=None):
-        """GET /api/groups/{id}/balances/ — Grup bakiyelerini döndürür."""
+        """GET /api/groups/{id}/balances/"""
         group = self.get_object()
         if not group.members.filter(id=request.user.id).exists():
             return Response({'error': 'Yetkisiz'}, status=403)
 
         raw = calculate_balances(group)
         simplified = simplify_debts(group)
-
         user_map = {u.id: u.username for u in group.members.all()}
 
         return Response({
@@ -59,23 +58,74 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
         })
 
 
-class ExpenseViewSet(viewsets.ReadOnlyModelViewSet):
-    """Kullanıcının dahil olduğu gruplardaki harcamaları listeler."""
-    serializer_class = ExpenseSerializer
-    permission_classes = [permissions.IsAuthenticated]
+class ExpenseViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated, IsMember]
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return ExpenseWriteSerializer
+        return ExpenseSerializer
 
     def get_queryset(self):
         return Expense.objects.filter(
             group__members=self.request.user
         ).select_related('paid_by', 'category', 'group').prefetch_related('shares__user').distinct()
 
+    def perform_create(self, serializer):
+        expense = serializer.save()
+        members = list(expense.group.members.all())
+        build_expense_shares(expense, expense.split_type, members)
+        create_notifications(expense=expense, actor=self.request.user)
 
-class SettlementViewSet(viewsets.ReadOnlyModelViewSet):
-    """Kullanıcının dahil olduğu gruplardaki ödemeleri listeler."""
-    serializer_class = SettlementSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    def perform_update(self, serializer):
+        expense = serializer.save()
+        # Payları sil, yeniden hesapla
+        expense.shares.all().delete()
+        members = list(expense.group.members.all())
+        build_expense_shares(expense, expense.split_type, members)
+
+    def destroy(self, request, *args, **kwargs):
+        expense = self.get_object()
+        # Sadece ödeyen veya grup admini silebilir
+        is_payer = expense.paid_by == request.user
+        is_admin = expense.group.membership_set.filter(
+            user=request.user, role='admin'
+        ).exists()
+        if not (is_payer or is_admin):
+            return Response(
+                {'error': 'Sadece harcamayı ekleyen veya grup admini silebilir.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+
+
+class SettlementViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated, IsMember]
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return SettlementWriteSerializer
+        return SettlementSerializer
 
     def get_queryset(self):
         return Settlement.objects.filter(
             group__members=self.request.user
-        ).select_related('from_user', 'to_user').distinct()
+        ).select_related('from_user', 'to_user', 'group').distinct()
+
+    def perform_create(self, serializer):
+        settlement = serializer.save()
+        create_notifications(settlement=settlement, actor=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        settlement = self.get_object()
+        # Sadece from_user veya grup admini silebilir
+        is_owner = settlement.from_user == request.user
+        is_admin = settlement.group.membership_set.filter(
+            user=request.user, role='admin'
+        ).exists()
+        if not (is_owner or is_admin):
+            return Response(
+                {'error': 'Sadece ödemeyi yapan veya grup admini silebilir.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
