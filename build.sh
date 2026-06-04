@@ -4,3 +4,13 @@ set -o errexit
 pip install -r requirements.txt
 python manage.py collectstatic --no-input
 python manage.py migrate
+
+# Superuser otomatik oluştur (yoksa)
+python manage.py shell << 'EOF'
+from django.contrib.auth.models import User
+if not User.objects.filter(username='admin').exists():
+    User.objects.create_superuser('admin', 'admin@splitmate.com', 'Admin1234!')
+    print("Superuser oluşturuldu: admin / Admin1234!")
+else:
+    print("Superuser zaten var.")
+EOF
