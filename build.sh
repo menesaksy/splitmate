@@ -9,8 +9,8 @@ python manage.py migrate
 python manage.py shell << 'EOF'
 from django.contrib.auth.models import User
 if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@splitmate.com', 'admin1234')
-    print("Superuser oluşturuldu: admin / admin1234")
+    User.objects.create_superuser('admin', 'admin@splitmate.com', 'Admin1234!')
+    print("Superuser oluşturuldu: admin / Admin1234!")
 else:
     print("Superuser zaten var.")
 EOF

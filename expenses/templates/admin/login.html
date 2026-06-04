@@ -1,0 +1,149 @@
+{% extends "admin/login.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    body {
+        background: linear-gradient(135deg, #0f1117 0%, #1a1f2e 50%, #0f1117 100%) !important;
+        min-height: 100vh;
+    }
+
+    .login-logo {
+        margin-bottom: 0 !important;
+    }
+
+    .login-logo a {
+        color: #e2e8f0 !important;
+        font-size: 28px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.5px;
+        text-shadow: 0 0 30px rgba(99,102,241,0.5);
+    }
+
+    .login-box {
+        background: rgba(20, 24, 36, 0.95) !important;
+        border: 1px solid rgba(99,102,241,0.3) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 40px rgba(99,102,241,0.1) !important;
+        backdrop-filter: blur(20px);
+        padding: 32px !important;
+    }
+
+    .login-box-msg {
+        color: #a0aec0 !important;
+        font-size: 13px !important;
+        padding-bottom: 16px !important;
+    }
+
+    .login-box-body .form-control {
+        background: #1a1f2e !important;
+        border: 1px solid #2d3748 !important;
+        border-radius: 8px !important;
+        color: #e2e8f0 !important;
+        height: 44px !important;
+        font-size: 13px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .login-box-body .form-control:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important;
+        background: #1e2436 !important;
+    }
+
+    .login-box-body .form-control::placeholder {
+        color: #4a5568 !important;
+    }
+
+    .input-group-addon {
+        background: #1a1f2e !important;
+        border: 1px solid #2d3748 !important;
+        border-radius: 8px !important;
+        color: #6366f1 !important;
+        width: 44px !important;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+        border: none !important;
+        border-radius: 8px !important;
+        height: 44px !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.5px !important;
+        box-shadow: 0 4px 15px rgba(99,102,241,0.4) !important;
+        transition: all 0.2s ease !important;
+        width: 100% !important;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 20px rgba(99,102,241,0.5) !important;
+    }
+
+    .login-card-body {
+        background: transparent !important;
+    }
+
+    /* Logo alanı özel */
+    .login-logo-container {
+        text-align: center;
+        margin-bottom: 24px;
+    }
+
+    .login-logo-icon {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        box-shadow: 0 8px 25px rgba(99,102,241,0.4);
+    }
+
+    .login-logo-icon i {
+        font-size: 28px;
+        color: #fff;
+    }
+
+    .login-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #e2e8f0;
+        margin: 0;
+    }
+
+    .login-subtitle {
+        font-size: 13px;
+        color: #4a5568;
+        margin-top: 4px;
+    }
+
+    .icheck-primary label {
+        color: #a0aec0 !important;
+        font-size: 12px !important;
+    }
+
+    a {
+        color: #6366f1 !important;
+    }
+
+    .login-page {
+        background: transparent !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-logo-container">
+    <div class="login-logo-icon">
+        <i class="fas fa-coins"></i>
+    </div>
+    <div class="login-title">SplitMate</div>
+    <div class="login-subtitle">Yönetim Paneli</div>
+</div>
+{{ block.super }}
+{% endblock %}
