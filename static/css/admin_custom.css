@@ -1,0 +1,47 @@
+/* Admin Login */
+body.login-page {
+    background: #0c0e14 !important;
+}
+.login-box {
+    background: #13161f !important;
+    border: 1px solid #1c2030 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7) !important;
+}
+.login-logo a {
+    color: #e2e8f0 !important;
+    font-weight: 700 !important;
+}
+.login-box-msg {
+    color: #6366f1 !important;
+    font-weight: 500 !important;
+}
+.login-box .form-control {
+    background: #0c0e14 !important;
+    border: 1px solid #1c2030 !important;
+    color: #e2e8f0 !important;
+    border-radius: 8px 0 0 8px !important;
+    height: 46px !important;
+}
+.login-box .form-control:focus {
+    border-color: #6366f1 !important;
+    box-shadow: none !important;
+}
+.login-box .input-group-text {
+    background: #0c0e14 !important;
+    border: 1px solid #1c2030 !important;
+    color: #6366f1 !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+.login-box .btn-primary {
+    background: #6366f1 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    height: 46px !important;
+    box-shadow: 0 4px 15px rgba(99,102,241,0.3) !important;
+}
+.login-box .btn-primary:hover {
+    background: #5254cc !important;
+    transform: translateY(-1px) !important;
+}
