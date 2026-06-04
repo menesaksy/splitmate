@@ -1,102 +1,18 @@
-/* Admin Login */
+/* ── Admin Login ── */
 body.login-page {
     background: #0c0e14 !important;
 }
+
 .login-box {
     background: #13161f !important;
     border: 1px solid #1c2030 !important;
     border-radius: 16px !important;
     box-shadow: 0 20px 60px rgba(0,0,0,0.7) !important;
-}
-.login-logo a {
-    color: #e2e8f0 !important;
-    font-weight: 700 !important;
-}
-.login-box-msg {
-    color: #6366f1 !important;
-    font-weight: 500 !important;
-}
-.login-box .form-control {
-    background: #0c0e14 !important;
-    border: 1px solid #1c2030 !important;
-    color: #e2e8f0 !important;
-    border-radius: 8px 0 0 8px !important;
-    height: 46px !important;
-}
-.login-box .form-control:focus {
-    border-color: #6366f1 !important;
-    box-shadow: none !important;
-}
-.login-box .input-group-text {
-    background: #0c0e14 !important;
-    border: 1px solid #1c2030 !important;
-    color: #6366f1 !important;
-    border-radius: 0 8px 8px 0 !important;
-}
-.login-box .btn-primary {
-    background: #6366f1 !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    height: 46px !important;
-    box-shadow: 0 4px 15px rgba(99,102,241,0.3) !important;
-}
-.login-box .btn-primary:hover {
-    background: #5254cc !important;
-    transform: translateY(-1px) !important;
-}
-/* Login logo gizle, yerine icon koy */
-.login-logo img {
-    display: none !important;
-}
-
-.login-logo::before {
-    content: '';
-    display: block;
-    width: 64px;
-    height: 64px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    border-radius: 16px;
-    margin: 0 auto 12px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z'/%3E%3C/svg%3E");
-    background-size: 36px;
-    background-repeat: no-repeat;
-    background-position: center;
-    box-shadow: 0 8px 25px rgba(99,102,241,0.4);
-}
-
-/* Log in butonu */
-.login-box .btn-primary,
-.login-box input[type="submit"] {
-    background: #6366f1 !important;
-    background-image: none !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    font-size: 14px !important;
-    height: 46px !important;
-    width: 100% !important;
-    color: #fff !important;
-    box-shadow: 0 4px 15px rgba(99,102,241,0.35) !important;
-    transition: all 0.2s ease !important;
-    margin-top: 8px !important;
-}
-
-.login-box .btn-primary:hover,
-.login-box input[type="submit"]:hover {
-    background: #5254cc !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 20px rgba(99,102,241,0.5) !important;
-}
-
-/* Kutu düzelt */
-.login-box {
-    margin-top: 0 !important;
-    border-radius: 16px !important;
     overflow: hidden !important;
+    margin-top: 0 !important;
 }
 
-/* Logo daha temiz */
+/* Logo alanı */
 .login-logo {
     background: transparent !important;
     padding-bottom: 0 !important;
@@ -109,7 +25,66 @@ body.login-page {
     height: 64px !important;
 }
 
-/* Başlık ekle */
+.login-logo a {
+    color: #e2e8f0 !important;
+    font-weight: 700 !important;
+}
+
+/* Hoşgeldiniz yazısı */
 .login-box-msg {
+    color: #6366f1 !important;
+    font-weight: 500 !important;
     font-size: 13px !important;
+}
+
+/* Input alanları */
+.login-box .form-control {
+    background: #0c0e14 !important;
+    border: 1px solid #1c2030 !important;
+    color: #e2e8f0 !important;
+    border-radius: 8px 0 0 8px !important;
+    height: 46px !important;
+}
+
+.login-box .form-control:focus {
+    border-color: #6366f1 !important;
+    box-shadow: none !important;
+}
+
+.login-box .input-group-text {
+    background: #0c0e14 !important;
+    border: 1px solid #1c2030 !important;
+    color: #6366f1 !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+/* Log in butonu — tüm selector'lar */
+.login-box .btn,
+.login-box .btn-primary,
+.login-box button[type="submit"],
+.login-box input[type="submit"],
+.card-footer .btn {
+    background-color: #6366f1 !important;
+    background-image: none !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    height: 46px !important;
+    width: 100% !important;
+    display: block !important;
+    box-shadow: 0 4px 15px rgba(99,102,241,0.35) !important;
+    transition: all 0.2s ease !important;
+    margin-top: 8px !important;
+}
+
+.login-box .btn:hover,
+.login-box .btn-primary:hover,
+.login-box button[type="submit"]:hover,
+.login-box input[type="submit"]:hover {
+    background-color: #5254cc !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(99,102,241,0.5) !important;
 }
