@@ -20,10 +20,32 @@
 <div class="sm-card mb-3">
     <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
         <div>
-            <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">
-                <span><i class="ti ti-people"></i> {{ group.members.count }} üye</span>
-                <span class="ms-3"><i class="ti ti-receipt"></i> {{ expenses|length }} harcama</span>
-                <span class="ms-3"><i class="ti ti-cash"></i> {{ total_amount|floatformat:2 }} {{ group.currency }}</span>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+
+                <!-- Üye sayısı — tıklanınca dropdown -->
+                <div style="position:relative;">
+                    <span class="member-count-btn" onclick="toggleMembers(event)" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:var(--radius-sm); transition:background 0.15s ease;">
+                        <i class="ti ti-users"></i> {{ group.members.count }} üye
+                    </span>
+
+                    <div id="memberDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:200; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px; min-width:220px; box-shadow:var(--shadow);">
+                        <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px;">Üyeler</div>
+                        {% for m in group.membership_set.select_related %}
+                        <div style="display:flex; align-items:center; gap:10px; padding:7px 0; {% if not forloop.last %}border-bottom:1px solid var(--border);{% endif %}">
+                            <div style="width:30px; height:30px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:#fff; flex-shrink:0;">
+                                {{ m.user.username|slice:":2"|upper }}
+                            </div>
+                            <div>
+                                <div style="font-size:13px; color:var(--text-primary); font-weight:500;">{{ m.user.username }}</div>
+                                <div style="font-size:11px; color:var(--text-muted);">{{ m.get_role_display }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <span style="display:inline-flex; align-items:center; gap:4px;"><i class="ti ti-receipt"></i> {{ expenses|length }} harcama</span>
+                <span style="display:inline-flex; align-items:center; gap:4px;"><i class="ti ti-cash"></i> {{ total_amount|floatformat:2 }} {{ group.currency }}</span>
             </div>
             {% if group.description %}
             <div style="font-size:13px; color:var(--text-secondary);">{{ group.description }}</div>
@@ -205,8 +227,20 @@
 
 {% block extra_js %}
 <script>
-document.querySelectorAll('.quick-settle').forEach(function (btn) {
-    btn.addEventListener('click', function (e) {
+// Üye dropdown
+function toggleMembers(e) {
+    e.stopPropagation();
+    const d = document.getElementById('memberDropdown');
+    d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function() {
+    const d = document.getElementById('memberDropdown');
+    if (d) d.style.display = 'none';
+});
+
+// Quick settle
+document.querySelectorAll('.quick-settle').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         if (!confirm('Bu ödemeyi yapıldı olarak işaretlemek istiyor musun?')) return;
@@ -231,7 +265,7 @@ document.querySelectorAll('.quick-settle').forEach(function (btn) {
 
 function getCookie(name) {
     let value = null;
-    document.cookie.split(';').forEach(function (c) {
+    document.cookie.split(';').forEach(function(c) {
         c = c.trim();
         if (c.startsWith(name + '=')) value = decodeURIComponent(c.substring(name.length + 1));
     });

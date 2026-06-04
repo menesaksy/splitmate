@@ -87,6 +87,17 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             if rate:
                 exchange_rates[curr] = rate
 
+        # Tüm bakiyeleri TRY'ye çevir
+        total_owed_try = Decimal('0.00')
+        total_owe_try = Decimal('0.00')
+        for curr, data in balances_by_currency.items():
+            if curr == 'TRY':
+                rate = Decimal('1.00')
+            else:
+                rate = exchange_rates.get(curr, Decimal('0.00'))
+            total_owed_try += data['owed'] * rate
+            total_owe_try += data['owe'] * rate
+
         recent_expenses = Expense.objects.filter(
             group__in=groups
         ).select_related('group', 'paid_by', 'category').order_by('-date', '-created_at')[:10]
@@ -99,6 +110,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'recent_expenses': recent_expenses,
             'exchange_rates': exchange_rates,
             'balances_by_currency': balances_by_currency,
+            'total_owed_try': total_owed_try,
+            'total_owe_try': total_owe_try,
+            'total_net_try': total_owed_try - total_owe_try,
         })
         return ctx
 
@@ -222,7 +236,6 @@ class GroupDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 @login_required
 @rate_limit(max_attempts=10, window_seconds=300, key_prefix='join_group')
 def join_group(request):
-    """Davet kodu ile gruba katilma."""
     if request.method == 'POST':
         form = JoinGroupForm(request.POST)
         if form.is_valid():

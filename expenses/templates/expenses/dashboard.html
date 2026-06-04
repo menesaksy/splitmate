@@ -19,43 +19,39 @@
     {% endif %}
 </div>
 
+<!-- Ana 3 kart — tüm para birimleri TRY'ye çevrilmiş toplam -->
 <div class="metric-grid mb-3" style="grid-template-columns: repeat(3, 1fr);">
     <div class="metric-card">
         <div class="metric-label">
             <i class="ti ti-arrow-down-circle" style="color:var(--green);"></i>
             SANA OLAN BORÇ
         </div>
-        {% with try_data=balances_by_currency.TRY %}
-        <div class="metric-value positive">+{{ try_data.owed|default:"0"|floatformat:2 }} ₺</div>
-        {% endwith %}
-        <div class="metric-sub">Sana olan borçlar</div>
+        <div class="metric-value positive">+{{ total_owed_try|floatformat:2 }} ₺</div>
+        <div class="metric-sub">Tüm gruplar · TRY karşılığı</div>
     </div>
     <div class="metric-card">
         <div class="metric-label">
             <i class="ti ti-arrow-up-circle" style="color:var(--red);"></i>
             SENİN BORCUN
         </div>
-        {% with try_data=balances_by_currency.TRY %}
-        <div class="metric-value negative">-{{ try_data.owe|default:"0"|floatformat:2 }} ₺</div>
-        {% endwith %}
-        <div class="metric-sub">Başkalarına borcun</div>
+        <div class="metric-value negative">-{{ total_owe_try|floatformat:2 }} ₺</div>
+        <div class="metric-sub">Tüm gruplar · TRY karşılığı</div>
     </div>
     <div class="metric-card">
         <div class="metric-label">
             <i class="ti ti-calculator" style="color:var(--accent);"></i>
             NET DURUM
         </div>
-        {% with try_data=balances_by_currency.TRY %}
-        <div class="metric-value {% if try_data.net > 0 %}positive{% elif try_data.net < 0 %}negative{% else %}neutral{% endif %}">
-            {{ try_data.net|default:"0"|floatformat:2 }} ₺
+        <div class="metric-value {% if total_net_try > 0 %}positive{% elif total_net_try < 0 %}negative{% else %}neutral{% endif %}">
+            {{ total_net_try|floatformat:2 }} ₺
         </div>
         <div class="metric-sub">
-            {% if try_data.net > 0 %}Alacaklısın{% elif try_data.net < 0 %}Borçlusun{% else %}Dengede{% endif %}
+            {% if total_net_try > 0 %}Alacaklısın{% elif total_net_try < 0 %}Borçlusun{% else %}Dengede{% endif %}
         </div>
-        {% endwith %}
     </div>
 </div>
 
+<!-- Para birimi detay (butona basınca açılır) -->
 {% if balances_by_currency|length > 1 %}
 <div id="currencyDetail" style="display:none; margin-bottom:16px;">
     <div style="background:var(--bg-raised); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 18px;">
