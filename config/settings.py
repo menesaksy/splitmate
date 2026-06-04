@@ -34,6 +34,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -162,3 +163,82 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'SplitMate <noreply@splitmate.com>')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:8000')
+
+JAZZMIN_SETTINGS = {
+    "site_title": "SplitMate Admin",
+    "site_header": "SplitMate",
+    "site_brand": "SplitMate",
+    "hide_apps": ["token_blacklist"],
+    "welcome_sign": "SplitMate Yönetim Paneli",
+    "copyright": "SplitMate",
+    "search_model": ["auth.User", "expenses.Group", "expenses.Expense"],
+    "topmenu_links": [
+        {"name": "Siteye Git", "url": "/", "new_window": False},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "expenses.Group": "fas fa-layer-group",
+        "expenses.Expense": "fas fa-receipt",
+        "expenses.ExpenseShare": "fas fa-divide",
+        "expenses.Settlement": "fas fa-handshake",
+        "expenses.Notification": "fas fa-bell",
+        "expenses.Category": "fas fa-tag",
+        "expenses.Membership": "fas fa-id-card",
+        "expenses.RecurringExpense": "fas fa-redo",
+    },
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+    "related_modal_active": True,
+    "custom_css": None,
+    "custom_js": None,
+    "use_google_fonts_cdn": False,
+    "show_ui_builder": False,
+    "order_with_respect_to": [
+        "auth",
+        "expenses",
+        "expenses.Group",
+        "expenses.Membership",
+        "expenses.Category",
+        "expenses.Expense",
+        "expenses.ExpenseShare",
+        "expenses.Settlement",
+        "expenses.Notification",
+        "expenses.RecurringExpense",
+    ],
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-primary",
+    "accent": "accent-primary",
+    "navbar": "navbar-dark",
+    "no_navbar_border": True,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "darkly",
+    "dark_mode_theme": "darkly",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success",
+    },
+}

@@ -10,85 +10,83 @@
 
 {% block content %}
 
-<!-- Currency Switcher + Metric Kartlar -->
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
     <h5 class="mb-0" style="color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:.06em;">Genel Durum</h5>
-    <div class="currency-switcher" id="currSwitcher">
-        <button class="curr-btn active" data-curr="all">Tümü</button>
-        {% for curr, data in balances_by_currency.items %}
-        <button class="curr-btn" data-curr="{{ curr }}">
-            {% if curr == 'TRY' %}₺{% elif curr == 'EUR' %}€{% elif curr == 'USD' %}${% endif %} {{ curr }}
-        </button>
-        {% endfor %}
-    </div>
+    {% if balances_by_currency|length > 1 %}
+    <button class="topbar-btn outline" onclick="toggleCurrencyDetail()" id="detailBtn">
+        <i class="ti ti-coins"></i> Para Birimi Detayı
+    </button>
+    {% endif %}
 </div>
 
-<div class="metric-grid mb-4" id="metricGrid">
-    {% for curr, data in balances_by_currency.items %}
-    <div class="metric-card" data-currency="{{ curr }}">
+<div class="metric-grid mb-3" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="metric-card">
         <div class="metric-label">
             <i class="ti ti-arrow-down-circle" style="color:var(--green);"></i>
             SANA OLAN BORÇ
-            <span class="currency-tag tag-{% if curr == 'TRY' %}try{% elif curr == 'EUR' %}eur{% else %}usd{% endif %}">{{ curr }}</span>
         </div>
-        <div class="metric-value positive">+{{ data.owed|floatformat:2 }} {% if curr == 'TRY' %}₺{% elif curr == 'EUR' %}€{% else %}${% endif %}</div>
+        {% with try_data=balances_by_currency.TRY %}
+        <div class="metric-value positive">+{{ try_data.owed|default:"0"|floatformat:2 }} ₺</div>
+        {% endwith %}
         <div class="metric-sub">Sana olan borçlar</div>
     </div>
-    <div class="metric-card" data-currency="{{ curr }}">
+    <div class="metric-card">
         <div class="metric-label">
             <i class="ti ti-arrow-up-circle" style="color:var(--red);"></i>
             SENİN BORCUN
-            <span class="currency-tag tag-{% if curr == 'TRY' %}try{% elif curr == 'EUR' %}eur{% else %}usd{% endif %}">{{ curr }}</span>
         </div>
-        <div class="metric-value negative">-{{ data.owe|floatformat:2 }} {% if curr == 'TRY' %}₺{% elif curr == 'EUR' %}€{% else %}${% endif %}</div>
+        {% with try_data=balances_by_currency.TRY %}
+        <div class="metric-value negative">-{{ try_data.owe|default:"0"|floatformat:2 }} ₺</div>
+        {% endwith %}
         <div class="metric-sub">Başkalarına borcun</div>
     </div>
-    <div class="metric-card" data-currency="{{ curr }}">
+    <div class="metric-card">
         <div class="metric-label">
             <i class="ti ti-calculator" style="color:var(--accent);"></i>
             NET DURUM
-            <span class="currency-tag tag-{% if curr == 'TRY' %}try{% elif curr == 'EUR' %}eur{% else %}usd{% endif %}">{{ curr }}</span>
         </div>
-        {% with net=data.owed|add:"-"|add:data.owe %}
-        <div class="metric-value {% if data.owed > data.owe %}positive{% elif data.owed < data.owe %}negative{% else %}neutral{% endif %}">
-            {{ data.net|floatformat:2 }} {% if curr == 'TRY' %}₺{% elif curr == 'EUR' %}€{% else %}${% endif %}
+        {% with try_data=balances_by_currency.TRY %}
+        <div class="metric-value {% if try_data.net > 0 %}positive{% elif try_data.net < 0 %}negative{% else %}neutral{% endif %}">
+            {{ try_data.net|default:"0"|floatformat:2 }} ₺
+        </div>
+        <div class="metric-sub">
+            {% if try_data.net > 0 %}Alacaklısın{% elif try_data.net < 0 %}Borçlusun{% else %}Dengede{% endif %}
         </div>
         {% endwith %}
-        <div class="metric-sub">
-            {% if data.net > 0 %}Alacaklısın{% elif data.net < 0 %}Borçlusun{% else %}Dengede{% endif %}
-        </div>
     </div>
-    {% empty %}
-    <div class="metric-card" data-currency="TRY">
-        <div class="metric-label"><i class="ti ti-arrow-down-circle" style="color:var(--green);"></i> SANA OLAN BORÇ</div>
-        <div class="metric-value positive">+0.00 ₺</div>
-        <div class="metric-sub">Henüz işlem yok</div>
-    </div>
-    <div class="metric-card" data-currency="TRY">
-        <div class="metric-label"><i class="ti ti-arrow-up-circle" style="color:var(--red);"></i> SENİN BORCUN</div>
-        <div class="metric-value negative">-0.00 ₺</div>
-        <div class="metric-sub">Henüz işlem yok</div>
-    </div>
-    <div class="metric-card" data-currency="TRY">
-        <div class="metric-label"><i class="ti ti-calculator" style="color:var(--accent);"></i> NET DURUM</div>
-        <div class="metric-value neutral">0.00 ₺</div>
-        <div class="metric-sub">Dengede</div>
-    </div>
-    {% endfor %}
 </div>
 
-<!-- Döviz kuru notu -->
-{% if exchange_rates %}
-<div class="converted-note mb-4">
-    <i class="ti ti-currency-exchange"></i> Anlık kurlar (frankfurter.app):
-    {% for curr, rate in exchange_rates.items %}
-    <span>1 {{ curr }} = ₺{{ rate|floatformat:2 }}</span>{% if not forloop.last %} · {% endif %}
-    {% endfor %}
+{% if balances_by_currency|length > 1 %}
+<div id="currencyDetail" style="display:none; margin-bottom:16px;">
+    <div style="background:var(--bg-raised); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 18px;">
+        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px;">Para Birimi Bazlı Bakiyeler</div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            {% for curr, data in balances_by_currency.items %}
+            <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 16px; min-width:160px;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">
+                    {% if curr == 'TRY' %}₺{% elif curr == 'EUR' %}€{% elif curr == 'USD' %}${% endif %} {{ curr }}
+                </div>
+                <div style="font-size:13px; color:var(--green);">+{{ data.owed|floatformat:2 }} alacak</div>
+                <div style="font-size:13px; color:var(--red);">-{{ data.owe|floatformat:2 }} borç</div>
+                <div style="font-size:13px; font-weight:500; color:{% if data.net > 0 %}var(--green){% elif data.net < 0 %}var(--red){% else %}var(--text-muted){% endif %}; margin-top:4px; border-top:1px solid var(--border); padding-top:4px;">
+                    Net: {{ data.net|floatformat:2 }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if exchange_rates %}
+        <div style="font-size:11px; color:var(--text-muted); margin-top:10px;">
+            <i class="ti ti-currency-exchange"></i> Anlık kurlar:
+            {% for curr, rate in exchange_rates.items %}
+            1 {{ curr }} = ₺{{ rate|floatformat:2 }}{% if not forloop.last %} · {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
 </div>
 {% endif %}
 
 <div class="row g-3">
-    <!-- Gruplar -->
     <div class="col-md-6">
         <div class="sm-card">
             <div class="sm-card-header">
@@ -123,7 +121,6 @@
         </div>
     </div>
 
-    <!-- Son Harcamalar -->
     <div class="col-md-6">
         <div class="sm-card">
             <div class="sm-card-header">
@@ -158,25 +155,16 @@
 
 {% block extra_js %}
 <script>
-// Currency switcher
-const switcher = document.getElementById('currSwitcher');
-if (switcher) {
-    switcher.addEventListener('click', function(e) {
-        const btn = e.target.closest('.curr-btn');
-        if (!btn) return;
-        
-        document.querySelectorAll('.curr-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        const curr = btn.dataset.curr;
-        document.querySelectorAll('.metric-card').forEach(card => {
-            if (curr === 'all' || card.dataset.currency === curr) {
-                card.classList.remove('faded');
-            } else {
-                card.classList.add('faded');
-            }
-        });
-    });
+function toggleCurrencyDetail() {
+    const detail = document.getElementById('currencyDetail');
+    const btn = document.getElementById('detailBtn');
+    if (detail.style.display === 'none') {
+        detail.style.display = 'block';
+        btn.innerHTML = '<i class="ti ti-x"></i> Kapat';
+    } else {
+        detail.style.display = 'none';
+        btn.innerHTML = '<i class="ti ti-coins"></i> Para Birimi Detayı';
+    }
 }
 </script>
 {% endblock %}

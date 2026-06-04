@@ -7,10 +7,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from .models import RecurringExpense
 from .ratelimit import rate_limit, RateLimitMixin
-from django.db.models import Sum, Count, Q, Max
+from django.db.models import Sum, Count, Q
 from datetime import datetime, timedelta
 from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
-from django.db.models import Sum, Count, Q
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import (
@@ -22,7 +21,6 @@ import json
 
 from .models import Group, Membership, Expense, ExpenseShare, Notification, Settlement, Category
 from .forms import GroupForm, ExpenseForm, SettlementForm, JoinGroupForm
-from .services import calculate_balances, simplify_debts, build_expense_shares, get_exchange_rate
 
 
 # ---------- Auth ----------
@@ -46,64 +44,63 @@ def signup(request):
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'expenses/dashboard.html'
 
-def get_context_data(self, **kwargs):
-    ctx = super().get_context_data(**kwargs)
-    user = self.request.user
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
 
-    groups = Group.objects.filter(
-        members=user, is_active=True
-    ).prefetch_related('members', 'expenses__shares').distinct()
+        groups = Group.objects.filter(
+            members=user, is_active=True
+        ).prefetch_related('members', 'expenses__shares').distinct()
 
-    total_owed_to_me = Decimal('0.00')
-    total_i_owe = Decimal('0.00')
-    balances_by_currency = {}
+        total_owed_to_me = Decimal('0.00')
+        total_i_owe = Decimal('0.00')
+        balances_by_currency = {}
 
-    for g in groups:
-        balances = calculate_balances(g)
-        my_balance = balances.get(user.id, Decimal('0.00'))
-        curr = g.currency
+        for g in groups:
+            balances = calculate_balances(g)
+            my_balance = balances.get(user.id, Decimal('0.00'))
+            curr = g.currency
 
-        if my_balance > 0:
-            total_owed_to_me += my_balance
-        elif my_balance < 0:
-            total_i_owe += -my_balance
+            if my_balance > 0:
+                total_owed_to_me += my_balance
+            elif my_balance < 0:
+                total_i_owe += -my_balance
 
-        if curr not in balances_by_currency:
-            balances_by_currency[curr] = {
-                'owed': Decimal('0.00'),
-                'owe': Decimal('0.00'),
-                'net': Decimal('0.00'),
-            }
-        if my_balance > 0:
-            balances_by_currency[curr]['owed'] += my_balance
-        elif my_balance < 0:
-            balances_by_currency[curr]['owe'] += abs(my_balance)
-        balances_by_currency[curr]['net'] = (
-            balances_by_currency[curr]['owed'] - balances_by_currency[curr]['owe']
-        )
+            if curr not in balances_by_currency:
+                balances_by_currency[curr] = {
+                    'owed': Decimal('0.00'),
+                    'owe': Decimal('0.00'),
+                    'net': Decimal('0.00'),
+                }
+            if my_balance > 0:
+                balances_by_currency[curr]['owed'] += my_balance
+            elif my_balance < 0:
+                balances_by_currency[curr]['owe'] += abs(my_balance)
+            balances_by_currency[curr]['net'] = (
+                balances_by_currency[curr]['owed'] - balances_by_currency[curr]['owe']
+            )
 
-    # Döviz kurlarını tek seferde çek, cache'den gelir
-    exchange_rates = {}
-    currencies = set(g.currency for g in groups if g.currency != 'TRY')
-    for curr in currencies:
-        rate = get_exchange_rate(curr, 'TRY')
-        if rate:
-            exchange_rates[curr] = rate
+        exchange_rates = {}
+        currencies = set(g.currency for g in groups if g.currency != 'TRY')
+        for curr in currencies:
+            rate = get_exchange_rate(curr, 'TRY')
+            if rate:
+                exchange_rates[curr] = rate
 
-    recent_expenses = Expense.objects.filter(
-        group__in=groups
-    ).select_related('group', 'paid_by', 'category').order_by('-date', '-created_at')[:10]
+        recent_expenses = Expense.objects.filter(
+            group__in=groups
+        ).select_related('group', 'paid_by', 'category').order_by('-date', '-created_at')[:10]
 
-    ctx.update({
-        'groups': groups,
-        'total_owed_to_me': total_owed_to_me,
-        'total_i_owe': total_i_owe,
-        'net_balance': total_owed_to_me - total_i_owe,
-        'recent_expenses': recent_expenses,
-        'exchange_rates': exchange_rates,
-        'balances_by_currency': balances_by_currency,
-    })
-    return ctx
+        ctx.update({
+            'groups': groups,
+            'total_owed_to_me': total_owed_to_me,
+            'total_i_owe': total_i_owe,
+            'net_balance': total_owed_to_me - total_i_owe,
+            'recent_expenses': recent_expenses,
+            'exchange_rates': exchange_rates,
+            'balances_by_currency': balances_by_currency,
+        })
+        return ctx
 
 
 # ---------- Grup CRUD ----------
@@ -305,6 +302,7 @@ class ExpenseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def test_func(self):
         return self.get_object().group.members.filter(id=self.request.user.id).exists()
 
+
 class ExpenseUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Expense
     form_class = ExpenseForm
@@ -341,10 +339,7 @@ class ExpenseUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-
-        # Eski payları sil, yeniden hesapla
         self.object.shares.all().delete()
-
         members = list(self.group.members.all())
         split_type = form.cleaned_data['split_type']
 
@@ -357,11 +352,12 @@ class ExpenseUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 custom = {}
 
         build_expense_shares(self.object, split_type, members, custom)
-        messages.success(self.request, 'Harcama güncellendi.')
+        messages.success(self.request, 'Harcama guncellendi.')
         return response
 
     def get_success_url(self):
         return reverse_lazy('group_detail', kwargs={'pk': self.group.pk})
+
 
 class ExpenseDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Expense
@@ -417,7 +413,6 @@ class SettlementCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 @login_required
 @require_POST
 def ajax_quick_settle(request, group_pk):
-    """Bir borc iliskisini tek tikla odendi olarak isaretleyin (AJAX)."""
     group = get_object_or_404(Group, pk=group_pk)
     if not group.members.filter(id=request.user.id).exists():
         return JsonResponse({'error': 'Yetkisiz'}, status=403)
@@ -426,8 +421,10 @@ def ajax_quick_settle(request, group_pk):
     to_user_id = request.POST.get('to_user_id')
     amount = request.POST.get('amount')
 
+    if str(request.user.id) != str(from_user_id):
+        return JsonResponse({'error': 'Sadece kendi adina odeme kaydedebilirsin.'}, status=403)
+
     try:
-        from django.contrib.auth.models import User
         from django.utils import timezone
         Settlement.objects.create(
             group=group,
@@ -446,7 +443,6 @@ def ajax_quick_settle(request, group_pk):
 
 @login_required
 def export_group_pdf(request, pk):
-    """Grup harcamalarini PDF olarak disa aktar."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -495,7 +491,6 @@ def export_group_pdf(request, pk):
             e.get_split_type_display(),
         ])
         total += e.amount
-
     expense_data.append(['TOPLAM', f"{total} {group.currency}", '', '', ''])
 
     exp_table = Table(expense_data, colWidths=[130, 80, 80, 80, 80])
@@ -537,13 +532,15 @@ def export_group_pdf(request, pk):
     response['Content-Disposition'] = f'attachment; filename="splitmate_{group.name}.pdf"'
     return response
 
+
+# ---------- Stats ----------
+
 class StatsView(LoginRequiredMixin, TemplateView):
     template_name = 'expenses/stats.html'
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
-        from datetime import datetime, timedelta
 
         groups = Group.objects.filter(members=user).distinct()
 
@@ -571,7 +568,6 @@ class StatsView(LoginRequiredMixin, TemplateView):
 
         monthly_data = []
         for i in range(5, -1, -1):
-            # relativedelta olmadan güvenli ay hesabı
             month_offset = (now.month - 1 - i) % 12 + 1
             year_offset = now.year + ((now.month - 1 - i) // 12)
             month_start = now.replace(year=year_offset, month=month_offset, day=1)
@@ -614,6 +610,7 @@ class StatsView(LoginRequiredMixin, TemplateView):
         })
         return ctx
 
+
 # ---------- Recurring Harcamalar ----------
 
 class RecurringExpenseListView(LoginRequiredMixin, TemplateView):
@@ -652,7 +649,7 @@ class RecurringExpenseCreateView(LoginRequiredMixin, UserPassesTestMixin, Create
         form.instance.group = self.group
         form.instance.created_by = self.request.user
         form.instance.next_run = form.cleaned_data['start_date']
-        messages.success(self.request, 'Tekrarlayan harcama oluşturuldu.')
+        messages.success(self.request, 'Tekrarlayan harcama olusturuldu.')
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -673,6 +670,7 @@ class RecurringExpenseDeleteView(LoginRequiredMixin, UserPassesTestMixin, Delete
             ).exists()
         )
 
+
 # ---------- Bildirimler ----------
 
 class NotificationListView(LoginRequiredMixin, TemplateView):
@@ -680,34 +678,32 @@ class NotificationListView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        from .models import Notification
         qs = Notification.objects.filter(
             user=self.request.user
         ).select_related('group', 'expense')
-    
+
         unread_count = qs.filter(is_read=False).count()
         notifications = qs[:50]
-    
+
         ctx.update({
             'notifications': notifications,
             'unread_count': unread_count,
         })
         return ctx
 
+
 @login_required
 @require_POST
 def mark_notifications_read(request):
-    from .models import Notification
     Notification.objects.filter(
         user=request.user, is_read=False
     ).update(is_read=True)
     return JsonResponse({'success': True})
 
+
 @login_required
 def unread_notification_count(request):
-    from .models import Notification
     count = Notification.objects.filter(
         user=request.user, is_read=False
     ).count()
     return JsonResponse({'count': count})
-

@@ -18,7 +18,9 @@
             <button type="submit" class="btn-sm-danger">
                 <i class="ti ti-trash"></i> Evet, Sil
             </button>
-            <a href="{% url 'group_detail' object.group.pk %}" class="btn-sm-outline">İptal</a>
+            <a href="{% url 'group_detail' object.pk %}" class="btn-sm-outline">
+                <i class="ti ti-x"></i> İptal
+            </a>
         </div>
     </form>
 </div>
