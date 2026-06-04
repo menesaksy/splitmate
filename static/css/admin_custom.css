@@ -88,3 +88,148 @@ body.login-page {
     transform: translateY(-1px) !important;
     box-shadow: 0 6px 20px rgba(99,102,241,0.5) !important;
 }
+
+/* ── Admin Dashboard ── */
+
+/* Kart başlıkları */
+.card-header {
+    background: linear-gradient(135deg, #1a1f2e, #1e2436) !important;
+    border-bottom: 1px solid rgba(99,102,241,0.2) !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    letter-spacing: 0.3px !important;
+    padding: 14px 18px !important;
+    border-radius: 12px 12px 0 0 !important;
+}
+
+/* Kartlar */
+.card {
+    border: 1px solid rgba(99,102,241,0.15) !important;
+    border-radius: 12px !important;
+    transition: all 0.2s ease !important;
+    overflow: hidden !important;
+}
+
+.card:hover {
+    border-color: rgba(99,102,241,0.4) !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Model isimleri */
+.model-name a, th a {
+    color: #a0aec0 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    transition: color 0.15s !important;
+}
+.model-name a:hover, th a:hover {
+    color: #6366f1 !important;
+}
+
+/* Add butonu */
+.addlink {
+    background: rgba(99,102,241,0.15) !important;
+    color: #6366f1 !important;
+    border: 1px solid rgba(99,102,241,0.3) !important;
+    border-radius: 6px !important;
+    padding: 3px 10px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    transition: all 0.15s !important;
+}
+.addlink:hover {
+    background: #6366f1 !important;
+    color: #fff !important;
+}
+
+/* Change butonu */
+.changelink {
+    background: rgba(20,184,166,0.15) !important;
+    color: #14b8a6 !important;
+    border: 1px solid rgba(20,184,166,0.3) !important;
+    border-radius: 6px !important;
+    padding: 3px 10px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    transition: all 0.15s !important;
+}
+.changelink:hover {
+    background: #14b8a6 !important;
+    color: #fff !important;
+}
+
+/* Recent actions */
+#recent-actions-module {
+    border: 1px solid rgba(99,102,241,0.15) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+}
+
+#recent-actions-module h2 {
+    background: linear-gradient(135deg, #1a1f2e, #1e2436) !important;
+    padding: 14px 18px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-bottom: 1px solid rgba(99,102,241,0.2) !important;
+    margin: 0 !important;
+}
+
+/* Navbar */
+.navbar {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+    border-bottom: 1px solid rgba(99,102,241,0.2) !important;
+}
+
+/* Sidebar */
+.main-sidebar {
+    border-right: 1px solid rgba(99,102,241,0.1) !important;
+}
+
+.nav-sidebar .nav-item .nav-link {
+    border-radius: 8px !important;
+    margin: 2px 8px !important;
+    transition: all 0.15s !important;
+}
+
+.nav-sidebar .nav-item .nav-link.active {
+    background: rgba(99,102,241,0.2) !important;
+    color: #6366f1 !important;
+}
+
+/* Tablo */
+#result_list {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+#result_list thead th {
+    background: #1a1f2e !important;
+    color: #a0aec0 !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    border-bottom: 1px solid #1c2030 !important;
+    padding: 12px 16px !important;
+}
+
+#result_list tbody tr:hover {
+    background: rgba(99,102,241,0.05) !important;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    background: transparent !important;
+    font-size: 12px !important;
+}
+
+.breadcrumb-item a {
+    color: #6366f1 !important;
+}
+
+/* Content header */
+.content-header h1 {
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    color: #e2e8f0 !important;
+}
